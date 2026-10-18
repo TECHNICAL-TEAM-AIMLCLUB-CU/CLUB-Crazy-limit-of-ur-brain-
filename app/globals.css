@@ -1,0 +1,76 @@
+@import 'tailwindcss';
+
+/* Design tokens */
+@theme {
+  --color-bg: #05060a;
+  --color-surface: #0b0e16;
+  --color-surface-2: #11151f;
+  --color-line: #1d2332;
+  --color-line-strong: #2b3348;
+  --color-fg: #e8ecf5;
+  --color-muted: #9aa4b8;
+  --color-brand-cyan: #22d3ee;
+  --color-brand-blue: #3b82f6;
+  --color-brand-violet: #8b5cf6;
+  --radius-card: 1rem;
+}
+
+@theme inline {
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-space), var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains), ui-monospace, monospace;
+}
+
+html {
+  color-scheme: dark;
+  scroll-behavior: smooth;
+  scroll-padding-top: 5rem;
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-fg);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  overflow-x: clip;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-brand-cyan);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+::selection {
+  background: rgba(34, 211, 238, 0.28);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+.gradient-text {
+  background: linear-gradient(90deg, var(--color-brand-cyan), var(--color-brand-blue) 55%, var(--color-brand-violet));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+@keyframes skeleton {
+  0%, 100% { opacity: 0.45; }
+  50% { opacity: 0.8; }
+}
+.skeleton {
+  animation: skeleton 1.6s ease-in-out infinite;
+  background: var(--color-surface-2);
+  border-radius: 0.75rem;
+}
