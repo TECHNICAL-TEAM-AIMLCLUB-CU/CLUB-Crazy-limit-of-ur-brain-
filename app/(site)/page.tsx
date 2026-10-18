@@ -102,11 +102,7 @@ export default async function HomePage() {
       </Section>
 
       <Section title="Past events">
-        {pastEvents.length > 0 ? (
-          <PastEventsGallery events={pastEvents} />
-        ) : (
-          <EmptyState title="No past events yet" />
-        )}
+        <PastEventsGallery events={pastEvents} />
       </Section>
 
       <Section eyebrow="Built by members" title="Projects" id="projects" href="/projects" hrefLabel="All projects">

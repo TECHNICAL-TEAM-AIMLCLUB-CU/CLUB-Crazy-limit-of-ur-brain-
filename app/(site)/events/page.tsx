@@ -29,11 +29,7 @@ export default async function EventsPage() {
         )}
       </Section>
       <Section title="Past events">
-        {past.length > 0 ? (
-          <PastEventsGallery events={past} />
-        ) : (
-          <EmptyState title="No past events yet" />
-        )}
+        <PastEventsGallery events={past} />
       </Section>
     </>
   );
