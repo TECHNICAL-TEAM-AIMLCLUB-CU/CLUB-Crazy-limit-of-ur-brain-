@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { isAdminAuthenticated, isAdminConfigured } from '@/lib/admin-auth';
+import { getAdminConfigurationIssues, isAdminAuthenticated, isAdminConfigured } from '@/lib/admin-auth';
 import {
   CMS_COLLECTIONS,
   getCmsDocuments,
@@ -254,13 +254,20 @@ export default async function StudioPage({
         {!isAdminConfigured() ? (
           <section className="max-w-2xl rounded-2xl border border-line bg-surface p-6 sm:p-8">
             <h1 className="font-display text-3xl font-semibold">Set up the content studio</h1>
-            <p className="mt-4 text-muted">Configure these server-only environment variables before signing in:</p>
-            <ul className="mt-3 list-disc space-y-2 pl-5 font-mono text-sm text-brand-cyan">
-              <li>CMS_ADMIN_EMAIL</li>
-              <li>CMS_ADMIN_PASSWORD (use a long, unique password)</li>
-              <li>CMS_SESSION_SECRET (at least 32 random bytes)</li>
+            <p className="mt-4 text-muted">The current deployment is missing valid CMS configuration:</p>
+            <ul className="mt-3 list-disc space-y-2 pl-5 text-sm text-red-300">
+              {getAdminConfigurationIssues().map((issue) => (
+                <li key={issue}>{issue}</li>
+              ))}
             </ul>
-            <p className="mt-4 text-sm text-muted">Also create the CMS tables by running <code>db/schema.sql</code> against your Neon database.</p>
+            <p className="mt-4 text-sm text-muted">
+              Add or correct the listed variables in Vercel Project Settings → Environment Variables, enable them for Production,
+              then create a new Production deployment. Secret values are never displayed here.
+            </p>
+            <p className="mt-4 text-sm text-muted">
+              The CMS also needs its database table. Run <code>db/schema.sql</code> against the Neon database configured in
+              <code> DATABASE_URL</code>.
+            </p>
           </section>
         ) : !(await isAdminAuthenticated()) ? (
           <section className="mx-auto max-w-md rounded-2xl border border-line bg-surface p-6 sm:p-8">

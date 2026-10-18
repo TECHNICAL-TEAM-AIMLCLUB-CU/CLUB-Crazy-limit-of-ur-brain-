@@ -4,6 +4,7 @@ import { cookies } from 'next/headers';
 
 export const ADMIN_SESSION_COOKIE = 'aiml_cms_session';
 const SESSION_SECONDS = 60 * 60 * 8;
+const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function sessionSecret() {
   const secret = process.env.CMS_SESSION_SECRET;
@@ -19,14 +20,24 @@ function equalSecret(actual: string, expected: string): boolean {
   return a.length === b.length && timingSafeEqual(a, b);
 }
 
+export function getAdminConfigurationIssues(): string[] {
+  const issues: string[] = [];
+  const email = process.env.CMS_ADMIN_EMAIL?.trim() ?? '';
+  const password = process.env.CMS_ADMIN_PASSWORD ?? '';
+  const secret = process.env.CMS_SESSION_SECRET ?? '';
+
+  if (!email) issues.push('CMS_ADMIN_EMAIL is missing.');
+  else if (!EMAIL.test(email)) issues.push('CMS_ADMIN_EMAIL must be a valid email address.');
+  if (!password) issues.push('CMS_ADMIN_PASSWORD is missing.');
+  else if (password.length < 12) issues.push('CMS_ADMIN_PASSWORD must be at least 12 characters long.');
+  if (!secret) issues.push('CMS_SESSION_SECRET is missing.');
+  else if (Buffer.byteLength(secret) < 32) issues.push('CMS_SESSION_SECRET must be at least 32 bytes long.');
+
+  return issues;
+}
+
 export function isAdminConfigured(): boolean {
-  return Boolean(
-    process.env.CMS_ADMIN_EMAIL &&
-      process.env.CMS_ADMIN_PASSWORD &&
-      process.env.CMS_ADMIN_PASSWORD.length >= 12 &&
-      process.env.CMS_SESSION_SECRET &&
-      Buffer.byteLength(process.env.CMS_SESSION_SECRET) >= 32,
-  );
+  return getAdminConfigurationIssues().length === 0;
 }
 
 export function checkAdminCredentials(email: string, password: string): boolean {
