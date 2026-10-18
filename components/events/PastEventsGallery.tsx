@@ -14,7 +14,15 @@ export default function PastEventsGallery({ events }: { events: ClubEvent[] }) {
     <div>
       <div role="region" aria-label="Past event photo gallery" className="mb-8 overflow-hidden rounded-3xl border border-line bg-surface/80 p-2 sm:p-3">
         <div className="h-[26rem] sm:h-[34rem]">
-          <DomeGallery images={images.length > 0 ? images : undefined} />
+          <DomeGallery
+            images={images.length > 0 ? images : undefined}
+            fit={1}
+            minRadius={1000}
+            maxVerticalRotationDeg={19}
+            segments={30}
+            dragDampening={5}
+            grayscale={false}
+          />
         </div>
         <p className="px-3 pb-2 pt-3 text-center text-sm text-muted">
           {images.length > 0
