@@ -1,4 +1,5 @@
 import EventCard from '@/components/cards/EventCard';
+import PastEventsGallery from '@/components/events/PastEventsGallery';
 import { EmptyState, PageHeader, Section } from '@/components/ui/Section';
 import { getEvents } from '@/lib/queries';
 import { pageMetadata } from '@/lib/seo';
@@ -29,11 +30,7 @@ export default async function EventsPage() {
       </Section>
       <Section title="Past events">
         {past.length > 0 ? (
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {past.map((e) => (
-              <EventCard key={e._id} event={e} past />
-            ))}
-          </div>
+          <PastEventsGallery events={past} />
         ) : (
           <EmptyState title="No past events yet" />
         )}

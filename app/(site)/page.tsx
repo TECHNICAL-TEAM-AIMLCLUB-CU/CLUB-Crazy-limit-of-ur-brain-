@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import AnnouncementCard from '@/components/cards/AnnouncementCard';
 import EventCard from '@/components/cards/EventCard';
+import PastEventsGallery from '@/components/events/PastEventsGallery';
 import ProjectsCardSwap from '@/components/projects/ProjectsCardSwap';
 import ExpandingTeamGrid, { type GridMember } from '@/components/team/ExpandingTeamGrid';
 import Hero from '@/components/site/Hero';
@@ -102,11 +103,7 @@ export default async function HomePage() {
 
       <Section title="Past events">
         {pastEvents.length > 0 ? (
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {pastEvents.map((event) => (
-              <EventCard key={event._id} event={event} past />
-            ))}
-          </div>
+          <PastEventsGallery events={pastEvents} />
         ) : (
           <EmptyState title="No past events yet" />
         )}
