@@ -1,6 +1,6 @@
 # AIML Club website
 
-Next.js 15 (App Router) · TypeScript · Tailwind CSS v4 · Neon Postgres · built-in content studio · Hyperspeed background.
+Next.js 15 (App Router) · TypeScript · Tailwind CSS v4 · Neon Postgres · built-in content studio · Lightfall WebGL background.
 
 ## Quick start
 
@@ -44,7 +44,7 @@ Sanity has been removed. Existing documents and uploaded images in a Sanity proj
 - **One-page experience:** the homepage includes About, events, projects, team, announcements, and join sections. Navigation uses smooth in-page anchors; detail routes continue to work.
 - **CMS:** `/studio` provides a protected admin login and content forms. Session cookies are HTTP-only, same-site, signed, and expire after eight hours. Content persists in the `cms_documents` JSONB table.
 - **Data access:** `lib/queries.ts` loads published public content from Neon. `app/studio/actions.ts` validates and writes admin changes, then revalidates public routes.
-- **Hyperspeed:** `components/Hyperspeed/*` is the background animation; `components/site/SiteBackground.tsx` provides reduced-motion and no-WebGL fallbacks.
+- **Lightfall:** `components/Lightfall/` contains a standalone, reusable WebGL2 background component with no project-specific dependencies. `components/site/SiteBackground.tsx` configures it for this site and provides reduced-motion and no-WebGL fallbacks. See `components/Lightfall/README.md` to reuse it.
 - **Join form:** `components/site/JoinForm.tsx` stores submissions in `join_requests`. It validates server-side and limits each hashed visitor to three submissions per day.
 - **Visitor counter:** `app/api/visits/route.ts` stores a daily salted hash rather than a raw IP address.
 

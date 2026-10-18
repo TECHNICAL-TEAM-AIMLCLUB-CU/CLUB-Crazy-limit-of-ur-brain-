@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import AnnouncementCard from '@/components/cards/AnnouncementCard';
 import EventCard from '@/components/cards/EventCard';
-import ProjectCard from '@/components/cards/ProjectCard';
+import ProjectsCardSwap from '@/components/projects/ProjectsCardSwap';
 import ExpandingTeamGrid, { type GridMember } from '@/components/team/ExpandingTeamGrid';
 import Hero from '@/components/site/Hero';
 import JoinForm from '@/components/site/JoinForm';
@@ -10,14 +10,7 @@ import { EmptyState, Section } from '@/components/ui/Section';
 import RichText from '@/components/ui/RichText';
 import { DEFAULTS } from '@/lib/defaults';
 import { getAnnouncements, getEvents, getProjects, getSettings, getTeam } from '@/lib/queries';
-import type { ProjectStatus } from '@/lib/types';
 import { imageUrl, safeUrl } from '@/lib/utils';
-
-const PROJECT_GROUPS: { status: ProjectStatus; title: string }[] = [
-  { status: 'ongoing', title: 'Ongoing' },
-  { status: 'available', title: 'Available' },
-  { status: 'completed', title: 'Completed' },
-];
 
 export default async function HomePage() {
   const [settings, events, projects, team, announcements] = await Promise.all([
@@ -119,22 +112,9 @@ export default async function HomePage() {
         )}
       </Section>
 
-      <Section eyebrow="Built by members" title="Projects" id="projects">
+      <Section eyebrow="Built by members" title="Projects" id="projects" href="/projects" hrefLabel="All projects">
         {projects.length > 0 ? (
-          PROJECT_GROUPS.map(({ status, title }) => {
-            const items = projects.filter((project) => project.status === status);
-            if (items.length === 0) return null;
-            return (
-              <div key={status} className="mb-12 last:mb-0">
-                <h3 className="mb-5 font-display text-2xl font-semibold">{title}</h3>
-                <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-                  {items.map((project) => (
-                    <ProjectCard key={project._id} project={project} />
-                  ))}
-                </div>
-              </div>
-            );
-          })
+          <ProjectsCardSwap projects={projects} />
         ) : (
           <EmptyState title="No projects yet">Add projects in the content studio to see them here.</EmptyState>
         )}
