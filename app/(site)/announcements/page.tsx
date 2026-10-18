@@ -3,7 +3,6 @@ import { EmptyState, PageHeader } from '@/components/ui/Section';
 import { getAnnouncements } from '@/lib/queries';
 import { pageMetadata } from '@/lib/seo';
 
-export const revalidate = 60;
 export const metadata = pageMetadata({ title: 'Announcements', description: 'News and updates from the club.', path: '/announcements' });
 
 export default async function AnnouncementsPage() {

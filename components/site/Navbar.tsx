@@ -26,7 +26,10 @@ export default function Navbar({ clubName }: { clubName: string }) {
     return () => window.removeEventListener('keydown', onKey);
   }, [open]);
 
-  const isActive = (href: string) => (href === '/' ? pathname === '/' : pathname.startsWith(href));
+  const isActive = (href: string) => {
+    const route = href.split('#')[0] || '/';
+    return href === '/#home' ? pathname === '/' : route !== '/' && pathname.startsWith(route);
+  };
   const linkCls = (href: string) =>
     `rounded-md px-3 py-2 text-sm transition motion-reduce:transition-none ${
       isActive(href) ? 'text-brand-cyan' : 'text-muted hover:text-fg'
@@ -62,7 +65,7 @@ export default function Navbar({ clubName }: { clubName: string }) {
           ))}
           <li className="ml-3">
             <Link
-              href="/join"
+              href="/#join"
               className="rounded-full bg-brand-cyan px-5 py-2 text-sm font-semibold text-bg transition hover:brightness-110"
             >
               Join the Club
@@ -90,13 +93,13 @@ export default function Navbar({ clubName }: { clubName: string }) {
           <ul className="mx-auto flex max-w-6xl flex-col gap-1 px-5 py-4 sm:px-8">
             {NAV_LINKS.map((l) => (
               <li key={l.href}>
-                <Link href={l.href} aria-current={isActive(l.href) ? 'page' : undefined} className={`block ${linkCls(l.href)} py-3 text-base`}>
+                <Link href={l.href} aria-current={isActive(l.href) ? 'page' : undefined} className={`block ${linkCls(l.href)} py-3 text-base`} onClick={() => setOpen(false)}>
                   {l.label}
                 </Link>
               </li>
             ))}
             <li className="pt-2">
-              <Link href="/join" className="block rounded-full bg-brand-cyan px-5 py-3 text-center text-sm font-semibold text-bg">
+              <Link href="/#join" className="block rounded-full bg-brand-cyan px-5 py-3 text-center text-sm font-semibold text-bg" onClick={() => setOpen(false)}>
                 Join the Club
               </Link>
             </li>

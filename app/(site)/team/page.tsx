@@ -1,11 +1,9 @@
 import ExpandingTeamGrid, { type GridMember } from '@/components/team/ExpandingTeamGrid';
 import { EmptyState, PageHeader } from '@/components/ui/Section';
 import { getTeam } from '@/lib/queries';
-import { imageUrl } from '@/lib/sanity';
 import { pageMetadata } from '@/lib/seo';
-import { safeUrl } from '@/lib/utils';
+import { imageUrl, safeUrl } from '@/lib/utils';
 
-export const revalidate = 60;
 export const metadata = pageMetadata({ title: 'Team', description: 'Meet the people behind the club.', path: '/team' });
 
 export default async function TeamPage() {
@@ -17,7 +15,7 @@ export default async function TeamPage() {
     role: m.role,
     department: m.department,
     bio: m.bio,
-    portraitUrl: imageUrl(m.portrait, 800, 1067), // consistent 3:4 crop
+    portraitUrl: imageUrl(m.portrait),
     portraitAlt: m.portrait?.alt || `Portrait of ${m.name}`,
     socials: (m.socials ?? []).flatMap((s) => {
       const href = safeUrl(s.url);
@@ -32,7 +30,7 @@ export default async function TeamPage() {
         {members.length > 0 ? (
           <ExpandingTeamGrid members={members} />
         ) : (
-          <EmptyState title="No team members yet">Add team members in Sanity Studio and publish them to see them here.</EmptyState>
+          <EmptyState title="No team members yet">Add team members in the content studio to see them here.</EmptyState>
         )}
       </div>
     </>

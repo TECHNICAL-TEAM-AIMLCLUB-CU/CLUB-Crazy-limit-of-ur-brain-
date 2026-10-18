@@ -5,7 +5,6 @@ import { getSettings } from '@/lib/queries';
 import { pageMetadata } from '@/lib/seo';
 import { safeUrl } from '@/lib/utils';
 
-export const revalidate = 60;
 export const metadata = pageMetadata({ title: 'Join', description: 'Join the club or get in touch with the team.', path: '/join' });
 
 export default async function JoinPage() {

@@ -31,7 +31,7 @@ const ROW_SIZE = 5;
 
 function Portrait({ m, sizes }: { m: GridMember; sizes: string }) {
   if (m.portraitUrl) {
-    return <Image src={m.portraitUrl} alt={m.portraitAlt} fill sizes={sizes} className="object-cover" />;
+    return <Image src={m.portraitUrl} alt={m.portraitAlt} fill sizes={sizes} className="object-cover" unoptimized />;
   }
   const initials = m.name
     .split(/\s+/)

@@ -114,8 +114,8 @@ export default function Hero({ clubName, headline, subtext }: { clubName: string
         </h1>
         <p className="mt-6 max-w-xl text-lg text-fg/80">{subtext}</p>
         <div className="mt-10 flex flex-wrap gap-4">
-          <ButtonLink href="/projects">Explore Our Work</ButtonLink>
-          <ButtonLink href="/join" variant="secondary">
+          <ButtonLink href="/#projects">Explore Our Work</ButtonLink>
+          <ButtonLink href="/#join" variant="secondary">
             Join the Club
           </ButtonLink>
         </div>

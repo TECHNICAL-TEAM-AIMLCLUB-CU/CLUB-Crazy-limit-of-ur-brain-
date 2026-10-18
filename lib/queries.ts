@@ -1,55 +1,61 @@
-import { sanityFetch } from './sanity';
+import { getSql } from './db';
 import type { Announcement, ClubEvent, Project, SiteSettings, TeamMember } from './types';
 
-const IMG = '{ asset, alt, hotspot, crop }';
+export async function getSettings(): Promise<SiteSettings> {
+  const rows = await getSql()`SELECT data FROM cms_documents WHERE collection = 'settings' AND id = 'main'`;
+  return (rows[0]?.data as SiteSettings | undefined) ?? {};
+}
 
-const SETTINGS = `*[_type == "siteSettings"][0]{
-  clubName, tagline, heroHeadline, heroSubtext, academicYear, mission, vision,
-  activities[]{ title, description }, aboutBody, joinText, contactEmail,
-  socials[]{ platform, url }
-}`;
+export async function getTeam(): Promise<TeamMember[]> {
+  const rows = await getSql()`
+    SELECT id, data
+    FROM cms_documents
+    WHERE collection = 'team'
+    ORDER BY CASE WHEN jsonb_typeof(data->'order') = 'number' THEN (data->>'order')::numeric ELSE 9999 END, data->>'name'
+  `;
+  return rows.map((row) => ({ ...(row.data as object), _id: String(row.id) }) as TeamMember);
+}
 
-const TEAM = `*[_type == "teamMember"] | order(coalesce(order, 9999) asc, name asc){
-  _id, name, role, department, bio, order, portrait${IMG}, socials[]{ platform, url }
-}`;
+export async function getEvents(): Promise<ClubEvent[]> {
+  const rows = await getSql()`
+    SELECT id, data
+    FROM cms_documents
+    WHERE collection = 'events' AND data ? 'date'
+    ORDER BY data->>'date' DESC
+  `;
+  return rows.map((row) => ({ ...(row.data as object), _id: String(row.id) }) as ClubEvent);
+}
 
-const EVENT_FIELDS = `_id, title, date, endDate, location, description, registrationUrl, featured, image${IMG}`;
-const PROJECT_FIELDS = `_id, title, summary, status, tags, contributors, repoUrl, demoUrl, featured, image${IMG}`;
-const ANNOUNCEMENT_FIELDS = `_id, title, "slug": slug.current, publishedAt, summary`;
+export async function getProjects(): Promise<Project[]> {
+  const rows = await getSql()`
+    SELECT id, data
+    FROM cms_documents
+    WHERE collection = 'projects'
+    ORDER BY CASE WHEN jsonb_typeof(data->'order') = 'number' THEN (data->>'order')::numeric ELSE 9999 END, data->>'title'
+  `;
+  return rows.map((row) => ({ ...(row.data as object), _id: String(row.id) }) as Project);
+}
 
-export const getSettings = () => sanityFetch<SiteSettings>(SETTINGS, {});
-export const getTeam = () => sanityFetch<TeamMember[]>(TEAM, []);
+export async function getAnnouncements(limit = 100): Promise<Announcement[]> {
+  const rows = await getSql()`
+    SELECT id, data
+    FROM cms_documents
+    WHERE collection = 'announcements' AND (data->>'publishedAt')::timestamptz <= now()
+    ORDER BY data->>'publishedAt' DESC
+    LIMIT ${limit}
+  `;
+  return rows.map((row) => ({ ...(row.data as object), _id: String(row.id) }) as Announcement);
+}
 
-export const getEvents = () =>
-  sanityFetch<ClubEvent[]>(`*[_type == "event" && defined(date)] | order(date desc){ ${EVENT_FIELDS} }`, []);
-
-export const getUpcomingEvents = (limit: number) =>
-  sanityFetch<ClubEvent[]>(
-    `*[_type == "event" && defined(date) && coalesce(endDate, date) >= now()] | order(date asc)[0...$limit]{ ${EVENT_FIELDS} }`,
-    [],
-    { limit },
-  );
-
-export const getProjects = () =>
-  sanityFetch<Project[]>(`*[_type == "project"] | order(coalesce(order, 9999) asc, title asc){ ${PROJECT_FIELDS} }`, []);
-
-export const getFeaturedProjects = (limit: number) =>
-  sanityFetch<Project[]>(
-    `*[_type == "project" && featured == true] | order(coalesce(order, 9999) asc)[0...$limit]{ ${PROJECT_FIELDS} }`,
-    [],
-    { limit },
-  );
-
-export const getAnnouncements = (limit = 100) =>
-  sanityFetch<Announcement[]>(
-    `*[_type == "announcement" && defined(slug.current) && publishedAt <= now()] | order(publishedAt desc)[0...$limit]{ ${ANNOUNCEMENT_FIELDS} }`,
-    [],
-    { limit },
-  );
-
-export const getAnnouncement = (slug: string) =>
-  sanityFetch<Announcement | null>(
-    `*[_type == "announcement" && slug.current == $slug && publishedAt <= now()][0]{ ${ANNOUNCEMENT_FIELDS}, body }`,
-    null,
-    { slug },
-  );
+export async function getAnnouncement(slug: string): Promise<Announcement | null> {
+  const rows = await getSql()`
+    SELECT id, data
+    FROM cms_documents
+    WHERE collection = 'announcements'
+      AND data->>'slug' = ${slug}
+      AND (data->>'publishedAt')::timestamptz <= now()
+    LIMIT 1
+  `;
+  const row = rows[0];
+  return row ? ({ ...(row.data as object), _id: String(row.id) } as Announcement) : null;
+}

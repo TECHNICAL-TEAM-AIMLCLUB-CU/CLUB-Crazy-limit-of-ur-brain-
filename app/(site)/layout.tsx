@@ -5,6 +5,8 @@ import SiteBackground from '@/components/site/SiteBackground';
 import { DEFAULTS } from '@/lib/defaults';
 import { getSettings } from '@/lib/queries';
 
+export const dynamic = 'force-dynamic';
+
 export async function generateMetadata(): Promise<Metadata> {
   const s = await getSettings();
   const name = s.clubName || DEFAULTS.clubName;

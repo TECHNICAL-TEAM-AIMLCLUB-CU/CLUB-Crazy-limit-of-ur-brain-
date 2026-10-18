@@ -4,7 +4,6 @@ import { DEFAULTS } from '@/lib/defaults';
 import { getSettings } from '@/lib/queries';
 import { pageMetadata } from '@/lib/seo';
 
-export const revalidate = 60;
 export const metadata = pageMetadata({
   title: 'About',
   description: 'Our mission, vision and what the club does.',
@@ -14,7 +13,7 @@ export const metadata = pageMetadata({
 export default async function AboutPage() {
   const s = await getSettings();
   const activities = s.activities ?? [];
-  const hasStory = Array.isArray(s.aboutBody) && s.aboutBody.length > 0;
+  const hasStory = Boolean(s.aboutBody);
 
   return (
     <>
@@ -51,7 +50,7 @@ export default async function AboutPage() {
       {hasStory && (
         <Section title="Our story">
           <div className="max-w-3xl">
-            <RichText value={s.aboutBody as unknown[]} />
+            <RichText value={s.aboutBody!} />
           </div>
         </Section>
       )}

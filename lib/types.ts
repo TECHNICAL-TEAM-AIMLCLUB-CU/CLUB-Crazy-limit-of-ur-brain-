@@ -1,8 +1,6 @@
-export interface SanityImageRef {
-  asset?: { _ref: string; _type?: string };
+export interface SiteImage {
+  url?: string;
   alt?: string;
-  hotspot?: { x: number; y: number; height: number; width: number };
-  crop?: { top: number; bottom: number; left: number; right: number };
 }
 
 export interface SocialLink {
@@ -19,7 +17,7 @@ export interface SiteSettings {
   mission?: string;
   vision?: string;
   activities?: { title: string; description?: string }[];
-  aboutBody?: unknown[];
+  aboutBody?: string;
   joinText?: string;
   contactEmail?: string;
   socials?: SocialLink[];
@@ -32,7 +30,7 @@ export interface TeamMember {
   department?: string;
   bio?: string;
   order?: number;
-  portrait?: SanityImageRef;
+  portrait?: SiteImage;
   socials?: SocialLink[];
 }
 
@@ -43,7 +41,7 @@ export interface ClubEvent {
   endDate?: string;
   location?: string;
   description?: string;
-  image?: SanityImageRef;
+  image?: SiteImage;
   registrationUrl?: string;
   featured?: boolean;
 }
@@ -55,7 +53,7 @@ export interface Project {
   title: string;
   summary: string;
   status: ProjectStatus;
-  image?: SanityImageRef;
+  image?: SiteImage;
   tags?: string[];
   contributors?: string[];
   repoUrl?: string;
@@ -69,5 +67,5 @@ export interface Announcement {
   slug: string;
   publishedAt: string;
   summary?: string;
-  body?: unknown[];
+  body?: string;
 }

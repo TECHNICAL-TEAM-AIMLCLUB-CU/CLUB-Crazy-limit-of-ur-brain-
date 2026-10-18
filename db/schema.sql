@@ -26,3 +26,17 @@ CREATE TABLE IF NOT EXISTS join_requests (
   ip_hash    text NOT NULL
 );
 CREATE INDEX IF NOT EXISTS join_requests_ip_idx ON join_requests (ip_hash, created_at);
+
+-- First-party CMS content. Keep site settings as the fixed `main` document.
+CREATE TABLE IF NOT EXISTS cms_documents (
+  collection text NOT NULL CHECK (collection IN ('settings', 'team', 'events', 'projects', 'announcements')),
+  id         text NOT NULL,
+  data       jsonb NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (collection, id),
+  CHECK (collection <> 'settings' OR id = 'main')
+);
+CREATE UNIQUE INDEX IF NOT EXISTS cms_announcement_slug_idx
+  ON cms_documents ((data->>'slug'))
+  WHERE collection = 'announcements';

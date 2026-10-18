@@ -3,7 +3,6 @@ import { EmptyState, PageHeader, Section } from '@/components/ui/Section';
 import { getEvents } from '@/lib/queries';
 import { pageMetadata } from '@/lib/seo';
 
-export const revalidate = 60;
 export const metadata = pageMetadata({ title: 'Events', description: 'Upcoming and past club events.', path: '/events' });
 
 export default async function EventsPage() {

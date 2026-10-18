@@ -1,61 +1,61 @@
 # AIML Club website
 
-Next.js 15 (App Router) · TypeScript · Tailwind CSS v4 · Sanity CMS · Neon Postgres · Hyperspeed (three.js) background.
-
-> **Status: generated, not yet run.** The environment this was written in had no network, so `npm install`,
-> lint, type-check and `next build` have **not** been run. Only a TypeScript *syntax* check was run (clean).
-> Dependency versions in `package.json` are best estimates; if `npm install` complains about peer versions
-> (especially `next-sanity` / `sanity` / `styled-components`), adjust to the versions npm suggests.
+Next.js 15 (App Router) · TypeScript · Tailwind CSS v4 · Neon Postgres · built-in content studio · Hyperspeed background.
 
 ## Quick start
+
 ```bash
 npm install
-cp .env.example .env.local     # fill in the values (see below)
-# Neon: run db/schema.sql once in the Neon SQL editor
-npm run dev                    # http://localhost:3000   (Studio at /studio)
-npm run lint && npm run typecheck && npm run build
+cp .env.example .env.local
+# Set the environment variables below.
+# Run db/schema.sql once in the Neon SQL editor.
+npm run dev
 ```
-Without Sanity env vars the site still runs and shows empty states (a console warning is logged).
+
+The public website is a continuously scrolling landing page with anchor navigation. Detail routes remain available for search engines and direct links. The built-in content studio is at `/studio`.
 
 ## Environment variables
+
 | Name | Where | Purpose |
 |---|---|---|
 | `NEXT_PUBLIC_SITE_URL` | public | Canonical URLs, sitemap, Open Graph |
-| `NEXT_PUBLIC_SANITY_PROJECT_ID` / `_DATASET` / `_API_VERSION` | public | Sanity identifiers (not secrets) |
-| `DATABASE_URL` | **server only** | Neon connection string |
-| `COUNTER_SALT` | **server only** | Salt for daily visitor hashes (`openssl rand -hex 32`) |
+| `DATABASE_URL` | **server only** | Neon Postgres connection |
+| `COUNTER_SALT` | **server only** | Salt for daily visitor hashes |
+| `CMS_ADMIN_EMAIL` | **server only** | CMS administrator login |
+| `CMS_ADMIN_PASSWORD` | **server only** | Long, unique CMS password |
+| `CMS_SESSION_SECRET` | **server only** | At least 32 random bytes for signing sessions |
 
-Never commit `.env*` (already git-ignored except `.env.example`). Set the same variables in Vercel.
+Generate a session secret with `openssl rand -hex 32`. Never prefix database or CMS credentials with `NEXT_PUBLIC_`, and never commit `.env.local`.
 
-## Sanity setup
-1. Create a project at sanity.io (or `npx sanity init` and copy the project ID), put it in `.env.local`.
-2. Add your site URL (and `http://localhost:3000`) under Sanity **API → CORS origins**, with credentials allowed, so Studio at `/studio` can load.
-3. Open `/studio`. Fill **Site settings** (singleton) first, then add team members, events, projects, announcements.
-4. The public site reads with `perspective: 'published'`: **drafts are never shown**; publish to make content live. Pages revalidate every 60 s.
+## Built-in content studio
 
-CMS-managed: club name/tagline, hero headline & text, mission, vision, "what we do", About story, join text,
-contact email, social links, academic-year text, team (portrait, role, department, bio, socials, order),
-events (date/end, location, image, registration link), projects (status, tags, contributors, repo/demo links,
-featured, order), announcements (slug, publication date, summary, rich body).
-Placeholder copy in `lib/defaults.ts` shows only while a field is empty. Nothing about the club (stats, sponsors, emails, socials) is invented.
+1. Configure `DATABASE_URL`, `CMS_ADMIN_EMAIL`, `CMS_ADMIN_PASSWORD`, and `CMS_SESSION_SECRET`.
+2. Run `db/schema.sql` against the Neon database. It creates the CMS document table as well as the tables used by the join form and visitor counter.
+3. Visit `/studio` and sign in with the configured administrator credentials.
+4. Edit site settings or create and manage team members, events, projects, and announcements. The public pages read this data directly from Neon.
+
+CMS image fields accept public HTTP(S) image URLs (the CMS does not upload image files). Long-form About and announcement copy is plain text with blank lines separating paragraphs. Event and announcement date/time fields are entered in UTC.
+
+Sanity has been removed. Existing documents and uploaded images in a Sanity project are not migrated automatically; recreate the content in `/studio` and copy over any image URLs before disconnecting the old project.
 
 ## Architecture
-- **Shell:** `app/(site)/layout.tsx` (server) fetches settings, mounts one `SiteBackground`, `Navbar`, `Footer`. The Studio lives outside this group so it gets no site chrome.
-- **Hyperspeed:** `components/Hyperspeed/*` is the unmodified React Bits source. `components/site/SiteBackground.tsx` loads it with `next/dynamic` (`ssr:false`), renders one fixed `pointer-events:none` layer, with a static gradient fallback (reduced motion, no WebGL, init error) and lighter settings on phones / ≤4-core devices. Your settings are used on desktop (racing, speed 0.5, boost 7, lime poles). `interactive` is off because the layer can't receive pointer events.
-- **Hero parallax:** `components/site/Hero.tsx`. One rAF-throttled scroll listener + pointer listener write `translate3d` to layers with different `data-depth` (no React state per scroll). Full on fine-pointer desktops, ~20% on touch, off for reduced motion; stops when the hero is off-screen (IntersectionObserver).
-- **Team grid:** `components/team/ExpandingTeamGrid.tsx` (see blocker below). Desktop: expanding panels (hover/focus/click, Esc closes). Touch: tap a tile to open details. Portraits are cropped 3:4 via the Sanity image URL builder.
-- **Visitor counter:** `app/api/visits/route.ts` + `components/site/VisitCounter.tsx` (footer).
-  *Rule:* a visit is counted once per browser session (HttpOnly session cookie) **and** once per salted daily hash of IP+user-agent; bots, prefetches and cross-origin posts never count; `GET` and component renders never increment; route changes don't count. The dedupe insert + increment are one atomic SQL statement. Only a hash is stored, never a raw IP. Labelled "Total Visits" (not unique people). Down DB → shows "—", page unaffected. Starts at 0.
-  *Note:* the cookie is `Secure`; Chrome/Firefox accept it on `localhost`, Safari may not (the daily-hash dedupe still applies).
-- **Join form:** `components/site/JoinForm.tsx` → `app/api/join/route.ts`. Server-side validation, honeypot, same-origin check, max 3 submissions/day per hashed visitor, stored in Neon `join_requests` (read them in the Neon console). No email is sent; add a delivery step (e.g. Resend) if you want notifications.
-- **SEO:** per-page metadata + canonicals, generated OG image, `sitemap.xml` (includes announcements), `robots.txt` (blocks `/studio`, `/api/`).
 
-## Known blockers / limitations
-1. **React Bits Pro Expanding Grid is NOT installed.** It needs your license key and the Pro registry install, which couldn't be done here, and the registry package name couldn't be verified (`@reactbits-starter/expanding-grid-tw` was only from your notes). The Team page uses an in-repo fallback with the same data flow. To swap: install per the React Bits Pro docs (keep `REACTBITS_LICENSE_KEY` in local env only, never commit/print it), then replace `<ExpandingTeamGrid>` in `app/(site)/team/page.tsx`; the page already prepares `{name, role, department, bio, portraitUrl, socials}` per member.
-2. **Nothing has been built or run** (see status above). Expect to fix small type/version issues on first `npm run typecheck` / `build`.
-3. Logo is a simple inline SVG mark; there's no CMS logo field yet.
-4. No automated tests are included. Manual counter checks: first load +1; same-session reload +0; private window +1 (per day per IP+UA); `curl -X POST` +0; wrong `DATABASE_URL` → "—" and the page still renders; `grep -r DATABASE_URL .next/static` finds nothing.
-5. Visitor/join protection is privacy-friendly rather than airtight; add Vercel WAF/Turnstile if abuse appears.
+- **Public shell:** `app/(site)/layout.tsx` mounts the fixed animated background, navigation, and footer.
+- **One-page experience:** the homepage includes About, events, projects, team, announcements, and join sections. Navigation uses smooth in-page anchors; detail routes continue to work.
+- **CMS:** `/studio` provides a protected admin login and content forms. Session cookies are HTTP-only, same-site, signed, and expire after eight hours. Content persists in the `cms_documents` JSONB table.
+- **Data access:** `lib/queries.ts` loads published public content from Neon. `app/studio/actions.ts` validates and writes admin changes, then revalidates public routes.
+- **Hyperspeed:** `components/Hyperspeed/*` is the background animation; `components/site/SiteBackground.tsx` provides reduced-motion and no-WebGL fallbacks.
+- **Join form:** `components/site/JoinForm.tsx` stores submissions in `join_requests`. It validates server-side and limits each hashed visitor to three submissions per day.
+- **Visitor counter:** `app/api/visits/route.ts` stores a daily salted hash rather than a raw IP address.
 
-## Deploy (Vercel)
-Import the repo, add the env vars above, deploy. Run `db/schema.sql` on the Neon database first.
+## Checks
+
+```bash
+npm run lint
+npm run typecheck
+npm run build
+```
+
+## Deploy
+
+Deploy on Vercel or another Node.js host. Add the environment variables above and apply `db/schema.sql` to Neon before opening the site. Set a strong, unique CMS password and a random session secret in the deployment environment.
