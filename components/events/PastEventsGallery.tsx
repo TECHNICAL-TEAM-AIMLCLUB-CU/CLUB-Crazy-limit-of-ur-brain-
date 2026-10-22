@@ -1,40 +1,42 @@
 'use client';
 
-import DomeGallery from '@/components/DomeGallery';
+import InfiniteMenu from '@/components/InfiniteMenu';
 import type { ClubEvent } from '@/lib/types';
 import { formatDateTime, imageUrl } from '@/lib/utils';
 
 export default function PastEventsGallery({ events }: { events: ClubEvent[] }) {
-  const images = events.flatMap((event) => {
+  const items = events.flatMap((event) => {
     const src = imageUrl(event.image);
-    return src ? [{ src, alt: event.image?.alt || `${event.title} — ${formatDateTime(event.date)}` }] : [];
+    return src
+      ? [{
+          image: src,
+          title: event.title,
+          description: `${formatDateTime(event.date)}${event.location ? ` · ${event.location}` : ''}`,
+          link: event.registrationUrl
+        }]
+      : [];
   });
 
   return (
     <div>
       <div role="region" aria-label="Past event photo gallery" className="mb-8 overflow-hidden rounded-3xl border border-line p-2 sm:p-3">
         <div className="h-[26rem] sm:h-[34rem]">
-          <DomeGallery
-            images={images.length > 0 ? images : undefined}
-            fit={1}
-            minRadius={1000}
-            maxVerticalRotationDeg={19}
-            segments={30}
-            dragDampening={5}
+          <InfiniteMenu
+            items={items}
+            backgroundColor="transparent"
             grayscale={false}
-            overlayBlurColor="transparent"
           />
         </div>
         <p className="px-3 pb-2 pt-3 text-center text-sm text-muted">
-          {images.length > 0
-            ? 'Drag to explore past event photos. Select a photo to enlarge it.'
-            : 'Drag to explore the gallery. Past event photos will appear here when added in Studio.'}
+          {items.length > 0
+            ? 'Drag or use the arrow keys to explore past event photos.'
+            : 'Add event photos in Studio to populate this gallery.'}
         </p>
       </div>
 
       {events.length === 0 ? (
         <p className="mb-8 rounded-2xl border border-line bg-surface/80 p-5 text-sm text-muted">
-          No past events have been added yet. The gallery is showing its sample images for now.
+          No past events have been added yet.
         </p>
       ) : null}
 
