@@ -8,7 +8,7 @@ import Hero from '@/components/site/Hero';
 import JoinForm from '@/components/site/JoinForm';
 import ButtonLink from '@/components/ui/ButtonLink';
 import { EmptyState, Section } from '@/components/ui/Section';
-import RichText from '@/components/ui/RichText';
+import AboutExperience from '@/components/site/AboutExperience';
 import { DEFAULTS } from '@/lib/defaults';
 import { getAnnouncements, getEvents, getProjects, getSettings, getTeam } from '@/lib/queries';
 import { imageUrl, safeUrl } from '@/lib/utils';
@@ -42,9 +42,7 @@ export default async function HomePage() {
   const socials = (settings.socials ?? [])
     .map((social) => ({ ...social, href: safeUrl(social.url) }))
     .filter((social) => social.href);
-  const activities = settings.activities ?? [];
-  const aboutBody = settings.aboutBody ?? '';
-
+  
   return (
     <>
       <div id="home">
@@ -55,40 +53,8 @@ export default async function HomePage() {
         />
       </div>
 
-      <Section eyebrow="About us" title="Mission & vision" id="about">
-        <div className="grid gap-5 md:grid-cols-2">
-          <div className="rounded-2xl border border-line bg-surface/90 p-6">
-            <h3 className="font-mono text-xs uppercase tracking-[0.2em] text-brand-cyan">Mission</h3>
-            <p className="mt-3 text-lg text-fg/90">{settings.mission || DEFAULTS.mission}</p>
-          </div>
-          <div className="rounded-2xl border border-line bg-surface/90 p-6">
-            <h3 className="font-mono text-xs uppercase tracking-[0.2em] text-brand-violet">Vision</h3>
-            <p className="mt-3 text-lg text-fg/90">{settings.vision || DEFAULTS.vision}</p>
-          </div>
-        </div>
-      </Section>
-
-      {activities.length > 0 && (
-        <Section eyebrow="Our work" title="What we do">
-          <ul className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {activities.map((activity) => (
-              <li key={activity.title} className="rounded-2xl border border-line bg-surface/90 p-6">
-                <h3 className="font-display text-xl font-semibold">{activity.title}</h3>
-                {activity.description && <p className="mt-2 text-sm text-muted">{activity.description}</p>}
-              </li>
-            ))}
-          </ul>
-        </Section>
-      )}
-
-      {aboutBody && (
-        <Section eyebrow="Our story" title="How we got here">
-          <div className="max-w-3xl">
-            <RichText value={aboutBody} />
-          </div>
-        </Section>
-      )}
-
+      <AboutExperience settings={settings} compact />
+      
       <Section eyebrow="Happening soon" title="Upcoming events" id="events">
         {upcomingEvents.length > 0 ? (
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
