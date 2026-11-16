@@ -29,7 +29,7 @@ Signal Room is the AIML Club website's editorial home for published announcement
 - Only announcements whose `publishedAt` is not in the future are shown publicly.
 - Read announcements from the existing CMS query layer; never add a hardcoded content fallback.
 - Existing documents without `category` or `featured` remain valid and visible. Do not require a backfill.
-- Keep each existing document ID and slug stable when an administrator edits it. Preserve fields not managed by the announcement form when saving an existing document.
+- Keep each existing document ID stable. Preserve the current slug unless an administrator explicitly edits the existing slug field; do not generate or re-key slugs automatically. Preserve fields not managed by the announcement form when saving an existing document.
 - Optional values are validated and omitted or cleared deliberately; invalid category values must not become public filter options.
 - If there are no published announcements, show the existing accessible empty-state pattern with no invented content.
 
@@ -53,7 +53,7 @@ Signal Room is the AIML Club website's editorial home for published announcement
 - If one or more published announcements are explicitly featured, do not substitute a non-featured record.
 - If none is explicitly featured, show the newest published announcement as the sole carousel item.
 - If there are no published announcements, omit the carousel.
-- The carousel supports previous/next controls, a position indicator, an explicit pause/resume control, and automatic rotation. It pauses while the pointer is over it or keyboard focus is inside it; manual navigation restarts the interval. Use a restrained interval and do not auto-rotate with reduced motion enabled.
+- The carousel supports previous/next controls, a position indicator, an explicit pause/resume control, and automatic rotation. It pauses while the pointer is over it or keyboard focus is inside it; manual navigation resets the interval, which resumes after hover/focus pauses clear. Use a restrained interval and do not auto-rotate with reduced motion enabled.
 - Controls remain usable at narrow viewport sizes and have accessible names.
 
 ### Browse, search, and detail

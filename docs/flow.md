@@ -8,7 +8,7 @@
 4. The page shows the featured carousel when at least one published announcement exists:
    - If one or more published documents are explicitly featured, show those documents newest first.
    - Otherwise show the newest published document as the single fallback slide.
-5. The reader may use carousel previous/next and pause/resume controls. Autoplay pauses while the carousel is hovered or focused and is disabled when reduced motion is requested. Manual navigation restarts its interval.
+5. The reader may use carousel previous/next and pause/resume controls. Autoplay pauses while the carousel is hovered or focused and is disabled when reduced motion is requested. Manual navigation resets its interval; autoplay resumes once hover/focus pauses clear.
 6. The reader searches title, summary, or body and/or chooses All or an available controlled category. Both controls compose and the results/status update.
 7. If no results match, show a clear no-results state and a reset action.
 

@@ -10,7 +10,8 @@ import {
   createAdminSession,
   requireAdmin,
 } from '@/lib/admin-auth';
-import { deleteCmsDocument, isCmsCollection, saveCmsDocument, type CmsCollection } from '@/lib/cms-admin';
+import { deleteCmsDocument, getCmsDocument, isCmsCollection, saveCmsDocument, type CmsCollection } from '@/lib/cms-admin';
+import { isAnnouncementCategory } from '@/lib/announcement-categories';
 import type { ProjectStatus, SiteImage } from '@/lib/types';
 import { imageUrl, safeUrl } from '@/lib/utils';
 
@@ -121,7 +122,12 @@ export async function saveDocumentAction(formData: FormData): Promise<void> {
   if (!isCmsCollection(collectionValue)) redirectError(null, 'invalid-collection');
   const collection = collectionValue;
   const id = field(formData, 'id', 200);
-  const data: Record<string, unknown> = {};
+  const existingAnnouncement =
+    collection === 'announcements' && id
+      ? await getCmsDocument(collection, id)
+      : null;
+  const data: Record<string, unknown> =
+    existingAnnouncement ? { ...existingAnnouncement.data } : {};
 
   if (collection === 'settings') {
     const activities = parseJsonArray(formData, 'activities');
@@ -209,12 +215,16 @@ export async function saveDocumentAction(formData: FormData): Promise<void> {
     const title = field(formData, 'title', 300);
     const slug = field(formData, 'slug', 200).toLowerCase();
     const publishedAt = dateField(formData, 'publishedAt');
+    const category = field(formData, 'category', 80);
     if (!title || publishedAt === '') redirectError(collection, 'required');
     if (publishedAt === null || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) redirectError(collection, 'invalid-fields');
+    if (category && !isAnnouncementCategory(category)) redirectError(collection, 'invalid-fields');
     Object.assign(data, {
       title,
       slug,
       publishedAt,
+      category: category || undefined,
+      featured: formData.get('featured') === 'on',
       summary: field(formData, 'summary', 2000),
       body: field(formData, 'body', 20_000),
     });

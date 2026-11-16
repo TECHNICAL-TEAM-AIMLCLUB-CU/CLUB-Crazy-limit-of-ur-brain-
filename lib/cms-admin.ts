@@ -27,6 +27,19 @@ export async function getCmsDocuments(collection: CmsCollection): Promise<CmsDoc
   }));
 }
 
+export async function getCmsDocument(collection: CmsCollection, id: string): Promise<CmsDocument | null> {
+  const rows = await getSql()`
+    SELECT id, data
+    FROM cms_documents
+    WHERE collection = ${collection} AND id = ${id}
+    LIMIT 1
+  `;
+  const row = rows[0];
+  return row
+    ? { id: String(row.id), data: row.data as Record<string, unknown> }
+    : null;
+}
+
 export async function saveCmsDocument(
   collection: CmsCollection,
   id: string,

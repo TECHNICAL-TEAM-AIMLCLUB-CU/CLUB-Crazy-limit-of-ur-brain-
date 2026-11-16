@@ -1,4 +1,5 @@
 import { getSql } from './db';
+import { isAnnouncementCategory } from './announcement-categories';
 import type { Announcement, ClubEvent, Project, SiteSettings, TeamMember } from './types';
 
 export async function getSettings(): Promise<SiteSettings> {
@@ -41,10 +42,20 @@ export async function getAnnouncements(limit = 100): Promise<Announcement[]> {
     SELECT id, data
     FROM cms_documents
     WHERE collection = 'announcements' AND (data->>'publishedAt')::timestamptz <= now()
-    ORDER BY data->>'publishedAt' DESC
+    ORDER BY (data->>'publishedAt')::timestamptz DESC
     LIMIT ${limit}
   `;
-  return rows.map((row) => ({ ...(row.data as object), _id: String(row.id) }) as Announcement);
+  return mapAnnouncementRows(rows);
+}
+
+export async function getSignalRoomAnnouncements(): Promise<Announcement[]> {
+  const rows = await getSql()`
+    SELECT id, data
+    FROM cms_documents
+    WHERE collection = 'announcements' AND (data->>'publishedAt')::timestamptz <= now()
+    ORDER BY (data->>'publishedAt')::timestamptz DESC
+  `;
+  return mapAnnouncementRows(rows);
 }
 
 export async function getAnnouncement(slug: string): Promise<Announcement | null> {
@@ -58,4 +69,16 @@ export async function getAnnouncement(slug: string): Promise<Announcement | null
   `;
   const row = rows[0];
   return row ? ({ ...(row.data as object), _id: String(row.id) } as Announcement) : null;
+}
+
+function mapAnnouncementRows(rows: Record<string, unknown>[]): Announcement[] {
+  return rows.map((row) => {
+    const data = row.data as Record<string, unknown>;
+    return {
+      ...data,
+      _id: String(row.id),
+      category: isAnnouncementCategory(data.category) ? data.category : undefined,
+      featured: data.featured === true,
+    } as Announcement;
+  });
 }

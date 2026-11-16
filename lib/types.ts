@@ -1,3 +1,5 @@
+import type { AnnouncementCategory } from './announcement-categories';
+
 export interface SiteImage {
   url?: string;
   alt?: string;
@@ -66,6 +68,8 @@ export interface Announcement {
   title: string;
   slug: string;
   publishedAt: string;
+  category?: AnnouncementCategory;
+  featured?: boolean;
   summary?: string;
   body?: string;
 }

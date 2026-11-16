@@ -87,7 +87,7 @@ export default async function HomePage() {
         )}
       </Section>
 
-      <Section eyebrow="Latest" title="Announcements" id="announcements">
+      <Section eyebrow="Latest" title="Announcements" id="announcements" href="/announcements" hrefLabel="Explore all">
         {announcements.length > 0 ? (
           <div className="grid gap-5 md:grid-cols-3">
             {announcements.map((announcement) => (
