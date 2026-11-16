@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import RichText from '@/components/ui/RichText';
+import { announcementCategoryLabel } from '@/lib/announcement-categories';
 import { getAnnouncement } from '@/lib/queries';
 import { pageMetadata } from '@/lib/seo';
 import { formatDate } from '@/lib/utils';
@@ -23,15 +24,23 @@ export default async function AnnouncementPage({ params }: Props) {
   const { slug } = await params;
   const a = await getAnnouncement(slug);
   if (!a) notFound();
+  const category = announcementCategoryLabel(a.category);
 
   return (
     <article className="mx-auto w-full max-w-3xl px-5 pb-20 pt-28 sm:px-8 sm:pt-36">
-      <Link href="/#announcements" className="text-sm text-muted hover:text-brand-cyan">
+      <Link href="/announcements" className="text-sm text-muted hover:text-brand-cyan">
         ← All announcements
       </Link>
-      <time dateTime={a.publishedAt} className="mt-6 block font-mono text-xs text-brand-cyan">
-        {formatDate(a.publishedAt)}
-      </time>
+      <div className="mt-6 flex flex-wrap items-center gap-3">
+        {category && (
+          <span className="rounded-full border border-line-strong bg-surface px-3 py-1 text-xs text-muted">
+            {category}
+          </span>
+        )}
+        <time dateTime={a.publishedAt} className="font-mono text-xs text-brand-cyan">
+          {formatDate(a.publishedAt)}
+        </time>
+      </div>
       <h1 className="mt-2 font-display text-4xl font-semibold tracking-tight sm:text-5xl">{a.title}</h1>
       {a.summary && <p className="mt-4 text-lg text-muted">{a.summary}</p>}
       {a.body && (

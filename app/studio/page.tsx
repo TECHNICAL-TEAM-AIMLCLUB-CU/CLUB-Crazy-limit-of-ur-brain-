@@ -9,6 +9,7 @@ import {
   type CmsCollection,
 } from '@/lib/cms-admin';
 import { getSettings } from '@/lib/queries';
+import { ANNOUNCEMENT_CATEGORIES, isAnnouncementCategory } from '@/lib/announcement-categories';
 import { deleteDocumentAction, loginAction, logoutAction, saveDocumentAction } from './actions';
 
 export const dynamic = 'force-dynamic';
@@ -26,7 +27,7 @@ const EMPTY_DOCUMENTS: Record<Exclude<CmsCollection, 'settings'>, Record<string,
   team: { name: '', role: '', department: '', bio: '', order: '', portrait: {}, socials: [] },
   events: { title: '', date: '', endDate: '', location: '', description: '', registrationUrl: '', image: {} },
   projects: { title: '', summary: '', status: 'ongoing', tags: [], contributors: [], repoUrl: '', demoUrl: '', featured: false, order: '', image: {} },
-  announcements: { title: '', slug: '', publishedAt: new Date().toISOString(), summary: '', body: '' },
+  announcements: { title: '', slug: '', publishedAt: new Date().toISOString(), category: '', featured: false, summary: '', body: '' },
 };
 
 const inputClass =
@@ -218,10 +219,27 @@ function DocumentFields({ collection, data }: { collection: CmsCollection; data:
       <TextField name="title" label="Announcement title" value={readText(data, 'title')} required />
       <div className="grid gap-5 sm:grid-cols-2">
         <TextField name="slug" label="URL slug" value={readText(data, 'slug')} required helper="Lowercase letters, numbers, and hyphens only." />
-      <TextField name="publishedAt" label="Publish date (UTC)" value={displayDate(data.publishedAt)} type="datetime-local" required />
+        <TextField name="publishedAt" label="Publish date (UTC)" value={displayDate(data.publishedAt)} type="datetime-local" required />
+        <label className={labelClass}>
+          Category
+          <select
+            name="category"
+            defaultValue={isAnnouncementCategory(data.category) ? data.category : ''}
+            className={inputClass}
+          >
+            <option value="">Uncategorized</option>
+            {ANNOUNCEMENT_CATEGORIES.map((category) => (
+              <option key={category.value} value={category.value}>{category.label}</option>
+            ))}
+          </select>
+        </label>
       </div>
       <TextArea name="summary" label="Summary" value={readText(data, 'summary')} />
       <TextArea name="body" label="Announcement body" value={readText(data, 'body')} rows={10} helper="Separate paragraphs with a blank line." />
+      <label className="flex items-center gap-2 text-sm text-fg">
+        <input type="checkbox" name="featured" defaultChecked={data.featured === true} className="accent-brand-cyan" />
+        Feature this announcement
+      </label>
     </>
   );
 }
@@ -231,7 +249,7 @@ function ErrorNotice({ error }: { error?: string }) {
     login: 'Email or password is incorrect.',
     required: 'Fill in all required fields before saving.',
     'invalid-arrays': 'Activities and social links must be valid JSON arrays with the required fields.',
-    'invalid-fields': 'Check dates, image URLs, and external links; only valid HTTP(S) URLs are accepted.',
+    'invalid-fields': 'Check dates, URLs, and the announcement category; only valid values are accepted.',
     'invalid-email': 'Enter a valid contact email address.',
     'invalid-collection': 'That content collection or document is not valid.',
     'duplicate-slug': 'That announcement URL slug is already in use. Choose another one.',
