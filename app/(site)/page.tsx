@@ -3,7 +3,7 @@ import AnnouncementCard from '@/components/cards/AnnouncementCard';
 import EventCard from '@/components/cards/EventCard';
 import PastEventsGallery from '@/components/events/PastEventsGallery';
 import ProjectsCardSwap from '@/components/projects/ProjectsCardSwap';
-import ExpandingTeamGrid, { type GridMember } from '@/components/team/ExpandingTeamGrid';
+import TeamShowcase from '@/components/team/TeamShowcase';
 import Hero from '@/components/site/Hero';
 import JoinForm from '@/components/site/JoinForm';
 import ButtonLink from '@/components/ui/ButtonLink';
@@ -11,7 +11,7 @@ import { EmptyState, Section } from '@/components/ui/Section';
 import AboutExperience from '@/components/site/AboutExperience';
 import { DEFAULTS } from '@/lib/defaults';
 import { getAnnouncements, getEvents, getProjects, getSettings, getTeam } from '@/lib/queries';
-import { imageUrl, safeUrl } from '@/lib/utils';
+import { safeUrl } from '@/lib/utils';
 
 export default async function HomePage() {
   const [settings, events, projects, team, announcements] = await Promise.all([
@@ -21,19 +21,6 @@ export default async function HomePage() {
     getTeam(),
     getAnnouncements(),
   ]);
-  const members: GridMember[] = team.map((m) => ({
-    id: m._id,
-    name: m.name,
-    role: m.role,
-    department: m.department,
-    bio: m.bio,
-    portraitUrl: imageUrl(m.portrait),
-    portraitAlt: m.portrait?.alt || `Portrait of ${m.name}`,
-    socials: (m.socials ?? []).flatMap((social) => {
-      const href = safeUrl(social.url);
-      return href ? [{ platform: social.platform, href }] : [];
-    }),
-  }));
   const now = Date.now();
   const isUpcoming = (event: { date: string; endDate?: string }) =>
     new Date(event.endDate ?? event.date).getTime() >= now;
@@ -79,13 +66,7 @@ export default async function HomePage() {
         )}
       </Section>
 
-      <Section eyebrow="The people" title="Meet the team" id="team">
-        {members.length > 0 ? (
-          <ExpandingTeamGrid members={members} />
-        ) : (
-          <EmptyState title="No team members yet">Add team members in the content studio to see them here.</EmptyState>
-        )}
-      </Section>
+      <TeamShowcase cmsTeam={team} compact />
 
       <Section eyebrow="Latest" title="Announcements" id="announcements">
         {announcements.length > 0 ? (
