@@ -36,6 +36,8 @@ Generate a session secret with `openssl rand -hex 32`. Never prefix database or 
 
 CMS image fields accept public HTTP(S) image URLs (the CMS does not upload image files). Long-form About and announcement copy is plain text with blank lines separating paragraphs. Event and announcement date/time fields are entered in UTC.
 
+The Signal Room archive is available at `/announcements`. It uses the same CMS announcements and JSONB documents as the homepage and `/announcements/[slug]`; adding optional announcement fields does not require a database migration. Announcements support draft/published status, controlled categories, optional images, explicit event dates/deadlines, and paired CTA labels/HTTP(S) URLs. Only explicit `eventDate` values appear in its upcoming timeline. Existing records without the new fields remain supported.
+
 Sanity has been removed. Existing documents and uploaded images in a Sanity project are not migrated automatically; recreate the content in `/studio` and copy over any image URLs before disconnecting the old project.
 
 ## Architecture
@@ -51,10 +53,13 @@ Sanity has been removed. Existing documents and uploaded images in a Sanity proj
 ## Checks
 
 ```bash
+npm test
 npm run lint
 npm run typecheck
 npm run build
 ```
+
+`npm test` runs focused Signal Room feed, metadata, date, and URL validation tests with the existing TypeScript dev dependency.
 
 ## Deploy
 

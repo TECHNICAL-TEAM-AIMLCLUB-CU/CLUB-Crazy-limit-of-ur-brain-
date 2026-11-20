@@ -68,8 +68,14 @@ export interface Announcement {
   title: string;
   slug: string;
   publishedAt: string;
+  publicationStatus?: 'draft' | 'published';
   category?: AnnouncementCategory;
   featured?: boolean;
   summary?: string;
   body?: string;
+  image?: SiteImage;
+  eventDate?: string;
+  deadline?: string;
+  ctaLabel?: string;
+  ctaUrl?: string;
 }

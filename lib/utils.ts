@@ -1,12 +1,18 @@
 import type { SiteImage } from './types';
 
-const dateFmt = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+const dateFmt = new Intl.DateTimeFormat('en-GB', {
+  day: 'numeric',
+  month: 'short',
+  year: 'numeric',
+  timeZone: 'UTC',
+});
 const dateTimeFmt = new Intl.DateTimeFormat('en-GB', {
   day: 'numeric',
   month: 'short',
   year: 'numeric',
   hour: '2-digit',
   minute: '2-digit',
+  timeZone: 'UTC',
 });
 
 export const formatDate = (iso: string) => dateFmt.format(new Date(iso));
@@ -31,6 +37,11 @@ export function safeUrl(url?: string): string | null {
   } catch {
     return null;
   }
+}
+
+export function safeHttpUrl(url?: string): string | null {
+  const safe = safeUrl(url);
+  return safe && (safe.startsWith('https://') || safe.startsWith('http://')) ? safe : null;
 }
 
 export const initials = (name: string) =>

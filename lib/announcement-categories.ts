@@ -1,13 +1,15 @@
 export const ANNOUNCEMENT_CATEGORIES = [
-  { value: 'club-updates', label: 'Club updates' },
   { value: 'events', label: 'Events' },
   { value: 'workshops', label: 'Workshops' },
-  { value: 'projects', label: 'Projects' },
   { value: 'opportunities', label: 'Opportunities' },
+  { value: 'notices', label: 'Notices' },
+  { value: 'club-updates', label: 'Club updates' },
+  { value: 'projects', label: 'Projects' },
   { value: 'achievements', label: 'Achievements' },
 ] as const;
 
 export type AnnouncementCategory = (typeof ANNOUNCEMENT_CATEGORIES)[number]['value'];
+export const REQUIRED_ANNOUNCEMENT_FILTERS = ['events', 'workshops', 'opportunities', 'notices'] as const;
 
 export function isAnnouncementCategory(value: unknown): value is AnnouncementCategory {
   return (
@@ -16,8 +18,8 @@ export function isAnnouncementCategory(value: unknown): value is AnnouncementCat
   );
 }
 
-export function announcementCategoryLabel(value: unknown): string | undefined {
+export function announcementCategoryLabel(value: unknown): string {
   return isAnnouncementCategory(value)
-    ? ANNOUNCEMENT_CATEGORIES.find((category) => category.value === value)?.label
-    : undefined;
+    ? ANNOUNCEMENT_CATEGORIES.find((category) => category.value === value)?.label ?? 'Club Update'
+    : 'Club Update';
 }

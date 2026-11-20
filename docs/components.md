@@ -8,8 +8,10 @@ Extend `Announcement` with optional fields:
 
 - `category?: AnnouncementCategory`, where `AnnouncementCategory` is the union of the controlled identifiers in `docs/prd.md`.
 - `featured?: boolean`.
+- `publicationStatus?: 'draft' | 'published'`; missing status on legacy records is treated as published.
+- `image?: SiteImage`, `eventDate?: string`, `deadline?: string`, `ctaLabel?: string`, and `ctaUrl?: string`.
 
-Use one shared category definition for public labels and CMS select options. At the CMS boundary, treat missing optional fields as valid legacy data and validate any submitted category against that definition.
+Use one shared category definition for public labels and CMS select options. At the CMS boundary, treat missing optional fields as valid legacy data and validate submitted categories, status, date/time values, image URLs, and CTA URL/label pairs.
 
 The current `cms_documents.data` JSONB column already stores arbitrary document properties. No SQL migration or bulk data update is required. Existing IDs, slugs, timestamps, and unrelated document properties must be preserved. Continue to use the current published-content queries and sanitize any display value at its use site.
 
@@ -17,8 +19,9 @@ The current `cms_documents.data` JSONB column already stores arbitrary document 
 
 ### Existing public route: `app/(site)/announcements/page.tsx`
 
-- Remains a Server Component and loads all published items through `getSignalRoomAnnouncements`.
+- Remains a Server Component and loads all published items through the existing `getAnnouncements` query.
 - Supplies real CMS records to the interactive Signal Room client surface.
+- Adds upcoming timeline entries only for valid future `eventDate` values; never infer event dates from `publishedAt`.
 - Keeps page metadata and the existing site layout.
 - Shows the current shared `EmptyState` when there are no published announcements.
 
@@ -26,6 +29,8 @@ The current `cms_documents.data` JSONB column already stores arbitrary document 
 
 - Client-side coordinator for category selection, search text, filtered results, and selected announcement.
 - Receives published announcements as props; it does not fetch, invent, or mutate CMS content.
+- Derives featured items, required category filters, search results, and displayed statistics from those records.
+- Displays an explicit `Club Update` label for uncategorized records without assigning a synthetic category.
 - Composes the featured carousel, filters/search, result status, cards, and expansion view.
 - Keeps a single source of truth for active filter/search/detail state and resets or preserves state predictably when the detail closes.
 
@@ -36,11 +41,12 @@ The current `cms_documents.data` JSONB column already stores arbitrary document 
 - Handles interval lifecycle, pause on pointer hover/focus, restart after manual navigation, and reduced-motion behavior.
 - Does not rotate when there is only one item.
 - Avoids timers when hidden/unmounted and cleans them up when dependencies change.
+- Renders optional image/CTA metadata only after URL sanitization.
 
 ### `components/announcements/AnnouncementFilters.tsx`
 
 - Renders a labeled search input and controlled category filter.
-- Categories are derived from valid categories represented in the current published dataset; All remains available.
+- All, Events, Workshops, Opportunities, and Notices remain available; legacy category filters are added when represented by published content.
 - Includes a clear/reset affordance when a filter or query is active.
 
 ### `components/cards/AnnouncementCard.tsx`
@@ -49,12 +55,14 @@ The current `cms_documents.data` JSONB column already stores arbitrary document 
 - Supports the Signal Room card presentation and selection affordance without breaking the existing detail Link.
 - Uses semantic interactive elements, a visible focus treatment, and reduced-motion-safe hover effects.
 - Applies a restrained pointer-driven tilt only when fine pointer input and motion preference allow it; reset transform on leave and do not make tilt necessary to use the card.
+- Displays publication date separately from explicitly stored event date and deadline.
 
 ### `components/announcements/AnnouncementExpansion.tsx`
 
 - Presents the selected announcement in an accessible dialog/expanded surface, including full available body content.
 - Uses shared-element transition treatment where the platform supports it and a simple CSS transition otherwise.
 - Supports Escape and close controls, focus management/restoration, scroll handling, and a direct canonical link to `/announcements/[slug]`.
+- Shows optional image, event/deadline values, and a safe CTA only when those fields exist.
 - On small viewports, behaves as a full-screen or near-full-screen detail surface rather than a cramped floating modal.
 
 ### Existing detail route: `app/(site)/announcements/[slug]/page.tsx`
@@ -68,17 +76,25 @@ The current `cms_documents.data` JSONB column already stores arbitrary document 
 
 - Adds an optional category `<select>` whose options come from the shared category definition.
 - Adds an optional featured checkbox with an explicit false state when unchecked.
-- Retains existing title, slug, publication date, summary, and body fields.
-- Server action independently validates category values and boolean form state; client controls are not trusted as validation.
+- Adds publication status, image URL/alt text, event date, deadline, CTA label, and CTA URL controls.
+- Retains existing title, slug, publication date, description, and body fields.
+- Server action independently validates category/status values, strict UTC date/time fields, safe HTTP(S) URLs, and paired CTA label/URL; client controls are not trusted as validation.
 - Updates the selected document in place. Do not change the document ID or slug index behavior.
 - Preserve unrecognized stored announcement properties when saving known fields. Do not bulk-rewrite documents.
 
 ### Existing data layer: `lib/queries.ts`, `lib/types.ts`
 
 - Adds optional TypeScript fields and a shared category type/definition.
-- Continues to exclude future publications from public lists and detail queries.
+- Continues to exclude drafts and future publications from public lists and detail queries while treating a missing legacy status as published.
+- Normalizes invalid optional metadata and sanitizes URLs before returning records to components.
 - Uses the existing JSONB table and query helpers; no relational migration is planned.
 - Keeps the homepage and sitemap consumers compatible.
+
+### `components/announcements/UpcomingTimeline.tsx`
+
+- Renders only the future dated announcements selected by the server route from explicit `eventDate` fields.
+- Shows a deadline or CTA only when the corresponding explicit CMS value is present and valid.
+- Is omitted when there are no upcoming dated announcements.
 
 ## State and accessibility contracts
 

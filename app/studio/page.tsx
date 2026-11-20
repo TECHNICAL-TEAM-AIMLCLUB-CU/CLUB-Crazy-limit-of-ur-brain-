@@ -10,6 +10,7 @@ import {
 } from '@/lib/cms-admin';
 import { getSettings } from '@/lib/queries';
 import { ANNOUNCEMENT_CATEGORIES, isAnnouncementCategory } from '@/lib/announcement-categories';
+import { ANNOUNCEMENT_PUBLICATION_STATUSES } from '@/lib/announcement-metadata';
 import { deleteDocumentAction, loginAction, logoutAction, saveDocumentAction } from './actions';
 
 export const dynamic = 'force-dynamic';
@@ -27,7 +28,21 @@ const EMPTY_DOCUMENTS: Record<Exclude<CmsCollection, 'settings'>, Record<string,
   team: { name: '', role: '', department: '', bio: '', order: '', portrait: {}, socials: [] },
   events: { title: '', date: '', endDate: '', location: '', description: '', registrationUrl: '', image: {} },
   projects: { title: '', summary: '', status: 'ongoing', tags: [], contributors: [], repoUrl: '', demoUrl: '', featured: false, order: '', image: {} },
-  announcements: { title: '', slug: '', publishedAt: new Date().toISOString(), category: '', featured: false, summary: '', body: '' },
+  announcements: {
+    title: '',
+    slug: '',
+    publishedAt: new Date().toISOString(),
+    publicationStatus: 'published',
+    category: '',
+    featured: false,
+    summary: '',
+    body: '',
+    image: {},
+    eventDate: '',
+    deadline: '',
+    ctaLabel: '',
+    ctaUrl: '',
+  },
 };
 
 const inputClass =
@@ -214,12 +229,25 @@ function DocumentFields({ collection, data }: { collection: CmsCollection; data:
     );
   }
 
+  const image = readImage(data, 'image');
   return (
     <>
       <TextField name="title" label="Announcement title" value={readText(data, 'title')} required />
       <div className="grid gap-5 sm:grid-cols-2">
         <TextField name="slug" label="URL slug" value={readText(data, 'slug')} required helper="Lowercase letters, numbers, and hyphens only." />
         <TextField name="publishedAt" label="Publish date (UTC)" value={displayDate(data.publishedAt)} type="datetime-local" required />
+        <label className={labelClass}>
+          Publication status
+          <select
+            name="publicationStatus"
+            defaultValue={readText(data, 'publicationStatus') === 'draft' ? 'draft' : 'published'}
+            className={inputClass}
+          >
+            {ANNOUNCEMENT_PUBLICATION_STATUSES.map((status) => (
+              <option key={status.value} value={status.value}>{status.label}</option>
+            ))}
+          </select>
+        </label>
         <label className={labelClass}>
           Category
           <select
@@ -233,9 +261,17 @@ function DocumentFields({ collection, data }: { collection: CmsCollection; data:
             ))}
           </select>
         </label>
+        <TextField name="eventDate" label="Event date (UTC, optional)" value={displayDate(data.eventDate)} type="datetime-local" />
+        <TextField name="deadline" label="Deadline (UTC, optional)" value={displayDate(data.deadline)} type="datetime-local" />
       </div>
-      <TextArea name="summary" label="Summary" value={readText(data, 'summary')} />
+      <TextArea name="summary" label="Description" value={readText(data, 'summary')} />
       <TextArea name="body" label="Announcement body" value={readText(data, 'body')} rows={10} helper="Separate paragraphs with a blank line." />
+      <div className="grid gap-5 sm:grid-cols-2">
+        <TextField name="imageUrl" label="Image URL" value={readText(image, 'url')} type="url" />
+        <TextField name="imageAlt" label="Image alt text" value={readText(image, 'alt')} />
+        <TextField name="ctaLabel" label="Call-to-action label" value={readText(data, 'ctaLabel')} helper="Required when a CTA URL is provided." />
+        <TextField name="ctaUrl" label="Call-to-action URL" value={readText(data, 'ctaUrl')} type="url" helper="Use an HTTP(S) URL; provide both label and URL." />
+      </div>
       <label className="flex items-center gap-2 text-sm text-fg">
         <input type="checkbox" name="featured" defaultChecked={data.featured === true} className="accent-brand-cyan" />
         Feature this announcement
@@ -249,7 +285,7 @@ function ErrorNotice({ error }: { error?: string }) {
     login: 'Email or password is incorrect.',
     required: 'Fill in all required fields before saving.',
     'invalid-arrays': 'Activities and social links must be valid JSON arrays with the required fields.',
-    'invalid-fields': 'Check dates, URLs, and the announcement category; only valid values are accepted.',
+    'invalid-fields': 'Check dates, URLs, publication status, CTA label, and announcement category; only valid values are accepted.',
     'invalid-email': 'Enter a valid contact email address.',
     'invalid-collection': 'That content collection or document is not valid.',
     'duplicate-slug': 'That announcement URL slug is already in use. Choose another one.',
