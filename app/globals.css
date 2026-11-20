@@ -27,6 +27,34 @@ html {
   scroll-padding-top: 5rem;
 }
 
+html:has(.site-shell[data-announcement-active='true']) {
+  scroll-padding-top: 8rem;
+}
+
+.site-shell {
+  --announcement-bar-height: 0px;
+  --announcement-bar-main-offset: 0px;
+}
+
+.site-shell[data-announcement-active='true'] {
+  --announcement-bar-height: 3rem;
+}
+
+.site-shell[data-announcement-active='true'] .site-skip-link:focus {
+  top: calc(var(--announcement-bar-height) + 5rem);
+}
+
+@media (max-width: 639px) {
+  html:has(.site-shell[data-announcement-active='true']) {
+    scroll-padding-top: 10rem;
+  }
+
+  .site-shell[data-announcement-active='true'] {
+    --announcement-bar-height: 5.25rem;
+    --announcement-bar-main-offset: 2.25rem;
+  }
+}
+
 body {
   background: var(--color-bg);
   color: var(--color-fg);

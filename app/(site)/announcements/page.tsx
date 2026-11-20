@@ -1,7 +1,8 @@
 import SignalRoom from '@/components/announcements/SignalRoom';
 import { EmptyState, PageHeader } from '@/components/ui/Section';
-import { getSignalRoomAnnouncements } from '@/lib/queries';
+import { getAnnouncements } from '@/lib/queries';
 import { pageMetadata } from '@/lib/seo';
+import { getUpcomingAnnouncements } from '@/lib/announcement-metadata';
 
 export const metadata = pageMetadata({
   title: 'Signal Room',
@@ -10,16 +11,17 @@ export const metadata = pageMetadata({
 });
 
 export default async function AnnouncementsPage() {
-  const items = await getSignalRoomAnnouncements();
+  const items = await getAnnouncements();
+  const upcomingAnnouncements = getUpcomingAnnouncements(items);
   return (
     <>
       <PageHeader
         eyebrow="Signal Room"
-        title="Announcements"
+        title="Club Announcements"
         description="A clear signal from the club: ideas, events, and updates worth your attention."
       />
       {items.length > 0 ? (
-        <SignalRoom announcements={items} />
+        <SignalRoom announcements={items} upcomingAnnouncements={upcomingAnnouncements} />
       ) : (
         <div className="mx-auto w-full max-w-6xl px-5 pb-20 sm:px-8">
           <EmptyState title="No announcements yet" />

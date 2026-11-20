@@ -10,7 +10,7 @@ Signal Room is the AIML Club website's editorial home for published announcement
 - Announcement documents are stored in the `cms_documents` table as JSONB. The existing public routes are `/announcements` and `/announcements/[slug]`; the homepage also renders recent announcements.
 - The protected `/studio` content studio creates and edits announcement documents.
 - Public content must continue to come from the CMS. Do not seed or hardcode announcement copy, dates, links, or images.
-- The existing announcement record fields are `title`, `slug`, `publishedAt`, `summary`, and `body`. `category` and `featured` are optional additions.
+- Announcement records include `title`, `slug`, `publishedAt`, `summary`, and `body`, plus optional `category`, `featured`, `publicationStatus`, `announcementType`, `priority`, `publicationEndsAt`, `announcementBarEventEligible`, `dismissible`, `image`, `eventDate`, `deadline`, `ctaLabel`, and `ctaUrl`.
 - The database schema has no announcement-specific relational columns or constraints for these fields. Adding JSON properties does not require a DDL migration. Do not rewrite or bulk-update existing rows.
 - `DATABASE_URL` was not configured in the inspected development process, so live Neon records could not be inspected. The no-migration decision is based on `db/schema.sql` and the CMS read/write implementation; verify against the deployed database before any future relational schema change.
 
@@ -19,32 +19,46 @@ Signal Room is the AIML Club website's editorial home for published announcement
 1. Make `/announcements` a polished, responsive, searchable editorial experience.
 2. Help readers quickly identify featured and relevant published announcements.
 3. Offer a satisfying, accessible card-to-detail expansion while retaining canonical, shareable announcement URLs.
-4. Let CMS administrators assign optional controlled categories and feature announcements.
+4. Let CMS administrators manage publication status, categories, and optional editorial/event metadata.
 5. Preserve existing announcement records and all current routes and homepage behavior.
 
 ## Functional requirements
 
 ### Published content and compatibility
 
-- Only announcements whose `publishedAt` is not in the future are shown publicly.
+- Only published announcements whose `publishedAt` is not in the future are shown publicly. Missing `publicationStatus` remains backward-compatible and is treated as published; explicit drafts and archived records are never public.
+- `publishedAt` is the publication date only. An event appears in the upcoming timeline only when it has a valid, explicit future `eventDate`. A deadline label appears only when an explicit, valid `deadline` is stored.
 - Read announcements from the existing CMS query layer; never add a hardcoded content fallback.
-- Existing documents without `category` or `featured` remain valid and visible. Do not require a backfill.
+- Existing documents without new optional metadata remain valid and visible. Do not require a backfill.
 - Keep each existing document ID stable. Preserve the current slug unless an administrator explicitly edits the existing slug field; do not generate or re-key slugs automatically. Preserve fields not managed by the announcement form when saving an existing document.
-- Optional values are validated and omitted or cleared deliberately; invalid category values must not become public filter options.
+- Optional values are validated and omitted or cleared deliberately; invalid category values must not become public filter options. Images and CTA links are sanitized before display.
 - If there are no published announcements, show the existing accessible empty-state pattern with no invented content.
+
+### Sitewide announcement bar
+
+- Render at most one announcement bar above the fixed main navigation. Select it server-side from the same existing `getAnnouncements()` JSONB records used by Signal Room; do not use a duplicate store or client-side database access.
+- Respect the publication start (`publishedAt`) and optional valid future `publicationEndsAt`. Do not show drafts, archived records, not-yet-published records, or records whose publication window has ended.
+- Select by class first: IMPORTANT, then active DEADLINE, then an explicitly eligible future event, then ordinary NOTICE. Event promotion requires `announcementBarEventEligible: true`, category `events`, and an explicit valid future `eventDate`; the optional field is false for legacy records. Within a class, higher integer priority wins, then newer publication time, then ascending slug/ID for a stable tie break.
+- A DEADLINE type requires an explicit valid future `deadline` to be eligible. Show its UTC weekday/date and a day-level state (“N days left”, “Closes today”, or “Closed”); never show an expired registration link. Past deadlines are removed from selection.
+- Link only the explicit optional CTA. Use safe same-site paths, HTTP(S), or mailto destinations; render no action when there is no valid configured label/link. The message itself is never interactive.
+- Only NOTICE records may be dismissed by default; DEADLINE may be dismissed only when the CMS explicitly enables it; IMPORTANT is never dismissible. Store a per-record, content-version fingerprint in an HTTP-only, same-site cookie. A CMS edit changes the fingerprint and makes the announcement eligible again.
+- Do not rotate announcements or add an “additional updates” count unless the count is provably complete and excludes all ineligible records.
+- With no eligible record, render no bar and leave the navigation at its original top position. Keep the announcement bar and fixed navigation geometry aligned at desktop and mobile widths without a client-storage hydration shift. Main content, skip link, and anchor targets must clear both fixed elements.
 
 ### Categories
 
 - Category is optional and is selected from a shared, finite list in both the CMS and public UI; it is not arbitrary free text.
 - Initial category identifiers and labels:
-  - `club-updates` — Club updates
   - `events` — Events
   - `workshops` — Workshops
-  - `projects` — Projects
   - `opportunities` — Opportunities
+  - `notices` — Notices
+  - `club-updates` — Club updates
+  - `projects` — Projects
   - `achievements` — Achievements
 - An uncategorized legacy document is included in All results and can be found by search. It must not be assigned an invented category.
-- Provide an All filter and only show category filters that have at least one published matching document. Category filtering and text search can be combined.
+- Always provide All, Events, Workshops, Opportunities, and Notices filters. Retain the legacy Club updates, Projects, and Achievements filters when published content uses those categories. Category filtering and text search can be combined.
+- Uncategorized legacy records remain in All and search results and display as “Club Update”; they are not assigned a synthetic filter category.
 
 ### Featured announcements
 
@@ -61,23 +75,25 @@ Signal Room is the AIML Club website's editorial home for published announcement
 - Provide a case-insensitive search over the published announcement title, summary, and body.
 - Update the result list as search and category state changes. Announce the result count to assistive technology without making every keystroke excessively verbose.
 - Show a clear no-results state and a way to clear the active search/filter.
-- Cards expose the title, publication date, optional category, and optional summary. Missing optional fields do not produce empty labels or broken layout.
-- Selecting a card opens the full announcement in a smooth shared-layout expansion that can be closed accessibly. The detail contains title, publication date, optional category, optional summary, and body when present.
+- Cards expose the title, publication date, optional category, description, image, and explicit event/deadline metadata when present. Missing optional fields do not produce empty labels or broken layout.
+- Selecting a card opens the full announcement in a smooth shared-layout expansion that can be closed accessibly. The detail contains publication metadata, body, image, event date/deadline, and a CTA only when valid CMS data is present.
 - Keep `/announcements/[slug]` as the canonical, directly navigable and SEO-capable full-detail route. Provide a usable direct-link affordance from the expanded view and a clear way back to browsing.
+- Do not add a subscription interface unless a working subscription mechanism already exists.
 - The homepage announcement section remains CMS-driven and links to the existing detail route; add or preserve a route link to Signal Room without replacing unrelated home sections.
 
 ### Visual and responsive quality
 
-- Follow the premium editorial + modern AI direction: soft blue, mint, lavender, and cool-neutral gradients; clean typography; generous whitespace; subtle borders and shadows.
+- Follow the premium editorial + modern AI direction: a midnight site canvas with restrained teal, emerald, cyan, and violet ambient gradients; clean typography; generous whitespace; subtle borders and shadows.
 - Avoid harsh neon, gaming motifs, excessive glass effects, clutter, and distracting movement.
-- Preserve the existing site shell, design tokens, navigation, background, and footer. Signal Room must look intentional within the existing dark-themed site rather than recoloring unrelated routes.
+- Preserve the existing site shell, design tokens, navigation, Lightfall background, and footer. Signal Room must look intentional within the existing dark-themed site rather than recoloring unrelated routes or adding another WebGL/particle background.
 - Support phone, tablet, and desktop sizes without horizontal overflow or inaccessible controls.
 - Honor `prefers-reduced-motion`; keep all content and controls usable when motion is reduced or unavailable.
 
 ## Non-goals
 
 - Replacing Neon, the CMS, the database, or the existing detail route.
-- Adding announcement image, registration, or event metadata that the current content model does not provide.
+- Fabricating announcement images, registration links, event dates, deadlines, seat counts, or statistics.
+- Adding a subscription mechanism or additional content service.
 - Migrating, deleting, or re-keying existing announcement records.
 - Introducing an animation dependency when CSS and existing platform APIs are sufficient.
 
@@ -85,7 +101,7 @@ Signal Room is the AIML Club website's editorial home for published announcement
 
 - All published content and detail metadata are read from the CMS.
 - Legacy records with no new fields render and can be searched and opened.
-- CMS saves validate the controlled category and featured boolean while preserving record identity and unrelated stored fields.
+- CMS saves validate publication status, controlled category, date strings, image/CTA URLs, and CTA field pairing while preserving record identity and unrelated stored fields.
 - Explicitly featured content takes precedence; newest-published fallback is used only when no published item is explicitly featured.
 - Search and category filters compose correctly; empty and zero-result states are clear.
 - Card expansion opens and closes with keyboard and pointer, and the canonical detail URL still works directly.
@@ -103,13 +119,17 @@ During implementation, track each acceptance criterion as PASS, FAIL, NEEDS IMPR
 |---|---|---|
 | Four product specifications created and cross-reviewed against the repository | PASS | `docs/prd.md`, `docs/components.md`, `docs/design.md`, and `docs/flow.md` document the current routes, CMS, schema, design, and interactions. |
 | No announcement DDL migration or bulk rewrite | PASS | `db/schema.sql` stores announcement fields in JSONB; implementation adds optional properties only. |
-| Optional controlled CMS category and featured toggle, with unknown announcement properties preserved on edit | PASS | Studio fields, shared category validation, and existing-document merge are implemented and typechecked. Live persistence was not executable. |
-| Legacy records without category/featured remain usable; invalid categories do not create filters | PASS | Public query normalizes optional values; filters include only controlled categories present in published data. |
+| CMS status, category, featured, image, event date, deadline, CTA, and announcement-bar metadata with server validation and unknown-property preservation | PASS | Studio form and server action use the existing JSONB document; type, priority, date-window, dismissibility, and URL validation are implemented. Live persistence is blocked without Neon credentials. |
+| Legacy records without new optional metadata remain public and render safely | PASS | Query treats missing status as published, normalizes invalid optional metadata, and fallback cases are tested. |
+| Required public filters and legacy category compatibility | PASS | Shared category definitions feed the filters and CMS; tests cover required filters, legacy categories, and uncategorized fallback. |
 | Featured records take precedence; newest published record is the fallback only when none is featured | PASS | Signal Room receives all published announcements ordered by publication timestamp and applies the explicit-feature/fallback selection. |
-| Search, category combination, result count, and zero-results reset | PASS | Implemented in the Signal Room client surface and included in a successful production build; runtime interaction remains unverified. |
+| Search, category combination, and empty-result behavior | PASS | Feed logic is covered by focused automated tests. Browser interaction against the changed deployment remains blocked. |
 | Carousel rotation, manual controls, pause/resume, hover/focus pause, and reduced-motion behavior | BLOCKED | Implemented, but the page could not render in the browser without `DATABASE_URL`; interaction testing remains outstanding. |
 | Shared-layout expansion, keyboard close/focus restoration, and canonical detail links | BLOCKED | Implemented and compiled; keyboard/browser verification is blocked by the same missing database configuration. |
-| Desktop/tablet/mobile layout, visual polish, and browser-console review | BLOCKED | A local page request failed in the existing site layout before Signal Room rendered because `DATABASE_URL` is unset. |
-| Homepage, announcement detail, studio, and sitemap compatibility | PASS | Existing routes and CMS flows remain wired; production build completed successfully. |
-| Typecheck, lint, production build | PASS | Typecheck and production build pass. ESLint reports 0 errors and one pre-existing warning in `eslint.config.mjs`. |
+| Desktop/tablet/mobile layout and browser-console review of the final code | BLOCKED | Prior live baseline was reviewed, but this final un-deployed change set cannot be browser-tested without a running configured site. |
+| Homepage, announcement detail, Studio, and sitemap compatibility | PASS | Existing public query and routes remain in use; production build is the required verification. |
+| Typecheck, lint, focused tests, production build | PASS | `npm test` (15 tests), `npm run typecheck`, `npm run lint` (0 errors; one pre-existing warning in `eslint.config.mjs`), and `npm run build` passed. |
 | Live Neon records, CMS save behavior, and preservation of existing database data | BLOCKED | No `DATABASE_URL` or local env file is available, so no live database read/write was attempted. |
+| Announcement bar priority, active windows, deadline expiry, and dismiss-version rules | PASS | Selector tests cover class order, integer priority, deterministic ties, publication windows, future events, explicit deadlines, and fingerprint changes after edits. |
+| Event promotion is explicitly CMS-controlled and backward-compatible | PASS | `announcementBarEventEligible` defaults false for legacy documents, is validated and persisted in Studio, and selector tests distinguish eligible from unflagged events. |
+| Desktop/mobile announcement bar rendering and keyboard dismissal | BLOCKED | Requires browser verification against a configured deployment; do not infer success from a production build. |

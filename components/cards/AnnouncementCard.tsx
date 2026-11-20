@@ -1,14 +1,16 @@
 'use client';
 
+import Image from 'next/image';
 import Link from 'next/link';
-import { useId, type PointerEvent } from 'react';
+import { type PointerEvent } from 'react';
 import { announcementCategoryLabel } from '@/lib/announcement-categories';
 import type { Announcement } from '@/lib/types';
-import { formatDate } from '@/lib/utils';
+import { formatDate, formatDateTime, imageUrl, safeAnnouncementUrl } from '@/lib/utils';
 
 type Props = {
   item: Announcement;
   onSelect?: (item: Announcement, trigger: HTMLButtonElement) => void;
+  expanded?: boolean;
   featured?: boolean;
   featuredLabel?: string;
 };
@@ -16,12 +18,16 @@ type Props = {
 export default function AnnouncementCard({
   item,
   onSelect,
+  expanded = false,
   featured = false,
   featuredLabel = 'Featured',
 }: Props) {
-  const instanceId = useId();
-  const triggerId = `${instanceId}-announcement`;
   const category = announcementCategoryLabel(item.category);
+  const image = imageUrl(item.image);
+  const ctaUrl = safeAnnouncementUrl(item.ctaUrl);
+  const ctaIsExternal = ctaUrl?.startsWith('http') ?? false;
+  const ctaUsesAnchor = ctaIsExternal || (ctaUrl?.startsWith('mailto:') ?? false);
+  const detailId = `announcement-detail-${item.slug}`;
 
   function applyTilt(event: PointerEvent<HTMLElement>) {
     if (event.pointerType !== 'mouse' || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
@@ -45,28 +51,57 @@ export default function AnnouncementCard({
         featured ? 'min-h-72 bg-gradient-to-br from-sky-300/10 via-emerald-200/5 to-violet-300/10 sm:min-h-80 sm:p-8' : ''
       }`}
     >
+      {image && (
+        <div className="relative mb-5 aspect-[16/9] overflow-hidden rounded-2xl border border-line-strong/60 bg-bg/50">
+          <Image
+            src={image}
+            alt={item.image?.alt || ''}
+            fill
+            sizes="(max-width: 640px) 100vw, (max-width: 1280px) 50vw, 33vw"
+            className="object-cover"
+            unoptimized
+          />
+        </div>
+      )}
       <div className="flex flex-wrap items-center gap-2">
         {featured && (
           <span className="rounded-full border border-sky-200/25 bg-sky-200/10 px-3 py-1 font-mono text-[0.65rem] uppercase tracking-[0.16em] text-sky-100">
             {featuredLabel}
           </span>
         )}
-        {category && (
-          <span className="rounded-full border border-line-strong bg-bg/35 px-3 py-1 text-xs text-muted">
-            {category}
-          </span>
-        )}
-        <time dateTime={item.publishedAt} className="ml-auto font-mono text-xs text-muted">
-          {formatDate(item.publishedAt)}
-        </time>
+        <span className="rounded-full border border-line-strong bg-bg/35 px-3 py-1 text-xs text-muted">
+          {category}
+        </span>
+        <span className="ml-auto font-mono text-xs text-muted">
+          Published <time dateTime={item.publishedAt}>{formatDate(item.publishedAt)}</time>
+        </span>
       </div>
+
+      {(item.eventDate || item.deadline) && (
+        <dl className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-xs text-muted">
+          {item.eventDate && (
+            <div className="flex gap-1.5">
+              <dt>Event</dt>
+              <dd><time dateTime={item.eventDate}>{formatDateTime(item.eventDate)}</time></dd>
+            </div>
+          )}
+          {item.deadline && (
+            <div className="flex gap-1.5">
+              <dt>Deadline</dt>
+              <dd><time dateTime={item.deadline}>{formatDateTime(item.deadline)}</time></dd>
+            </div>
+          )}
+        </dl>
+      )}
 
       <h2 className={`mt-5 font-display font-semibold tracking-tight ${featured ? 'text-2xl sm:text-4xl' : 'text-xl'}`}>
         {onSelect ? (
           <button
-            id={triggerId}
             type="button"
             aria-label={`Expand announcement: ${item.title}`}
+            aria-haspopup="dialog"
+            aria-expanded={expanded}
+            aria-controls={detailId}
             onClick={(event) => onSelect(item, event.currentTarget)}
             className="text-left transition-colors hover:text-sky-100 focus-visible:text-sky-100 motion-reduce:transition-none"
           >
@@ -85,18 +120,37 @@ export default function AnnouncementCard({
         </p>
       )}
 
-      <div className="mt-auto flex justify-end pt-6">
+      <div className="mt-auto flex flex-wrap items-center justify-between gap-2 pt-6">
+        {ctaUrl && item.ctaLabel && (
+          ctaUsesAnchor ? (
+            <a
+              href={ctaUrl}
+              target={ctaIsExternal ? '_blank' : undefined}
+              rel={ctaIsExternal ? 'noopener noreferrer' : undefined}
+              className="inline-flex min-h-11 items-center rounded-full bg-brand-cyan px-4 py-2 text-sm font-semibold text-bg transition hover:brightness-110 motion-reduce:transition-none"
+            >
+              {item.ctaLabel}
+            </a>
+          ) : (
+            <Link
+              href={ctaUrl}
+              className="inline-flex min-h-11 items-center rounded-full bg-brand-cyan px-4 py-2 text-sm font-semibold text-bg transition hover:brightness-110 motion-reduce:transition-none"
+            >
+              {item.ctaLabel}
+            </Link>
+          )
+        )}
         {onSelect ? (
           <Link
             href={`/announcements/${item.slug}`}
-            className="rounded-full px-3 py-2 text-sm font-medium text-muted transition hover:text-fg"
+            className="ml-auto rounded-full px-3 py-2 text-sm font-medium text-muted transition hover:text-fg"
           >
             Open full story <span aria-hidden="true">↗</span>
           </Link>
         ) : (
           <Link
             href={`/announcements/${item.slug}`}
-            className="rounded-full px-3 py-2 text-sm font-medium text-muted transition hover:text-fg"
+            className="ml-auto rounded-full px-3 py-2 text-sm font-medium text-muted transition hover:text-fg"
           >
             Read announcement <span aria-hidden="true">→</span>
           </Link>

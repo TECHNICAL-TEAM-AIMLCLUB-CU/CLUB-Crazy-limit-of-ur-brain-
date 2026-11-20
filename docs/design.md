@@ -4,11 +4,13 @@
 
 Signal Room should feel like an editorial briefing room for an AI/ML community: thoughtful, current, and quietly technical. Combine generous editorial spacing and hierarchy with subtle signals of computation. It should feel like part of the existing AIML Club website, not a separate demo or a wholesale redesign.
 
+The sitewide announcement bar is a compact, single-line desktop banner above the fixed navigation, with a two-row mobile layout. Use dark teal/emerald for ordinary notices, muted rose for IMPORTANT, and restrained amber for DEADLINE. Keep the label, message, optional deadline state, action link, and optional dismiss control distinct; only the configured action link and dismiss button are interactive.
+
 ## Palette and surfaces
 
 - Keep the existing dark site canvas and shared navigation/footer intact.
-- Use cool neutral surfaces for the announcement cards and detail surfaces, accented with soft blue, mint, and lavender gradients.
-- Keep gradients low contrast and localized to the featured story, small labels, or restrained decorative details.
+- Use cool neutral surfaces for the announcement cards and detail surfaces, accented with restrained teal, emerald, cyan, and violet gradients.
+- Keep ambient gradients low contrast and localized to the Signal Room introduction and featured story; preserve the site's existing Lightfall background and do not add another WebGL/particle layer.
 - Retain the existing `bg`, `surface`, `line`, `fg`, `muted`, and brand tokens where they maintain consistency. Add only Signal Room-specific tokens/utilities if a repeated need is established.
 - Maintain readable contrast in every surface state, including hover, focus, selected, disabled, and overlay states. Do not use color alone to communicate category or carousel position.
 - Prefer fine borders and diffuse, low-elevation shadows over heavy outlines, glows, or glass panels.
@@ -44,6 +46,7 @@ Signal Room should feel like an editorial briefing room for an AI/ML community: 
 - The selected category is distinct from unselected categories without relying only on hue.
 - Empty data and no search matches use concise, calm messaging consistent with shared site empty states.
 - The expansion close affordance remains visible, and the expanded content retains a clear title/date hierarchy and optional category/summary behavior.
+- Separate publication date from explicit event date/deadline metadata; render no inferred dates, links, or counts.
 - Carousel controls expose direction and position to assistive technology; the current slide is identifiable without motion.
 
 ## Responsive and accessibility checks
