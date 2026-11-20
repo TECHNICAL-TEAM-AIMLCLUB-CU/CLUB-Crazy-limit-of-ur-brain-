@@ -72,7 +72,9 @@ export default async function HomePage() {
 
       <Section eyebrow="Latest" title="Announcements" id="announcements" href="/announcements" hrefLabel="Explore all announcements">
         {announcements.length > 0 ? (
-          <SignalRoom announcements={announcements} upcomingAnnouncements={upcomingAnnouncements} />
+          <div className="-mx-5 sm:-mx-8">
+            <SignalRoom announcements={announcements} upcomingAnnouncements={upcomingAnnouncements} />
+          </div>
         ) : (
           <EmptyState title="No announcements yet" />
         )}
