@@ -19,7 +19,7 @@ export function Section({
   const headingId = `${id ?? title.toLowerCase().replace(/\W+/g, '-')}-heading`;
   return (
     <section id={id} aria-labelledby={headingId} className="mx-auto w-full max-w-6xl px-5 py-14 sm:px-8 sm:py-20">
-      <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
+      <div className="mb-8 flex items-end justify-between gap-4">
         <div>
           {eyebrow && <p className="font-mono text-xs uppercase tracking-[0.2em] text-brand-cyan">{eyebrow}</p>}
           <h2 id={headingId} className="mt-2 font-display text-3xl font-semibold tracking-tight sm:text-4xl">

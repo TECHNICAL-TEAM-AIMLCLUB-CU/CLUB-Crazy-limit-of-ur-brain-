@@ -36,7 +36,7 @@ export default function Navbar({ clubName }: { clubName: string }) {
     }`;
 
   return (
-    <header className="fixed inset-x-0 top-[var(--announcement-bar-height)] z-50 border-b border-line/70 bg-bg/80 backdrop-blur-md">
+    <header className="fixed inset-x-0 top-0 z-50 border-b border-line/70 bg-bg/80 backdrop-blur-md">
       <nav aria-label="Main" className="mx-auto flex h-16 max-w-6xl items-center justify-between px-5 sm:px-8">
         <Link href="/" className="flex items-center gap-2.5 font-display text-lg font-semibold" aria-label={`${clubName} home`}>
           <svg width="26" height="26" viewBox="0 0 26 26" aria-hidden="true">

@@ -1,29 +1,16 @@
 'use client';
 
-import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
 import AnnouncementCard from '@/components/cards/AnnouncementCard';
 import AnnouncementExpansion from '@/components/announcements/AnnouncementExpansion';
 import AnnouncementFilters from '@/components/announcements/AnnouncementFilters';
 import FeaturedAnnouncementCarousel from '@/components/announcements/FeaturedAnnouncementCarousel';
-import UpcomingTimeline from '@/components/announcements/UpcomingTimeline';
-import {
-  filterAnnouncements,
-  getAvailableAnnouncementCategories,
-  getFeaturedAnnouncements,
-} from '@/lib/announcement-feed';
-import {
-  ANNOUNCEMENT_CATEGORIES,
-  isAnnouncementCategory,
-  REQUIRED_ANNOUNCEMENT_FILTERS,
-  type AnnouncementCategory,
-} from '@/lib/announcement-categories';
+import { ANNOUNCEMENT_CATEGORIES, isAnnouncementCategory, type AnnouncementCategory } from '@/lib/announcement-categories';
 import type { Announcement } from '@/lib/types';
 
 type Props = {
   announcements: Announcement[];
-  upcomingAnnouncements: (Announcement & { eventDate: string })[];
 };
 
 type ViewTransitionDocument = Document & {
@@ -58,7 +45,7 @@ function updateWithTransition(
   });
 }
 
-export default function SignalRoom({ announcements, upcomingAnnouncements }: Props) {
+export default function SignalRoom({ announcements }: Props) {
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState<AnnouncementCategory | null>(null);
   const [selected, setSelected] = useState<Announcement | null>(null);
@@ -84,22 +71,27 @@ export default function SignalRoom({ announcements, upcomingAnnouncements }: Pro
   }, [selected]);
 
   const featuredAnnouncements = useMemo(() => {
-    return getFeaturedAnnouncements(announcements);
+    const explicit = announcements.filter((item) => item.featured === true);
+    return explicit.length > 0 ? explicit : announcements.slice(0, 1);
   }, [announcements]);
 
   const availableCategories = useMemo(() => {
-    return getAvailableAnnouncementCategories(
-      announcements,
-      ANNOUNCEMENT_CATEGORIES.map((item) => item.value),
-      REQUIRED_ANNOUNCEMENT_FILTERS,
+    const present = new Set(
+      announcements.flatMap((item) => (isAnnouncementCategory(item.category) ? [item.category] : [])),
     );
+    return ANNOUNCEMENT_CATEGORIES
+      .filter((item) => present.has(item.value))
+      .map((item) => item.value);
   }, [announcements]);
-  const categoryCount = new Set(
-    announcements.flatMap((item) => (isAnnouncementCategory(item.category) ? [item.category] : [])),
-  ).size;
 
   const visibleAnnouncements = useMemo(() => {
-    return filterAnnouncements(announcements, category, query);
+    const normalizedQuery = query.trim().toLocaleLowerCase();
+    return announcements.filter((item) => {
+      if (category && item.category !== category) return false;
+      if (!normalizedQuery) return true;
+      return [item.title, item.summary, item.body]
+        .some((value) => value?.toLocaleLowerCase().includes(normalizedQuery));
+    });
   }, [announcements, category, query]);
 
   function openAnnouncement(item: Announcement, trigger: HTMLButtonElement) {
@@ -112,38 +104,14 @@ export default function SignalRoom({ announcements, upcomingAnnouncements }: Pro
   }
 
   return (
-    <div className="relative isolate">
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 top-0 z-0 h-[44rem] bg-[radial-gradient(ellipse_at_18%_8%,rgba(16,185,129,0.12),transparent_58%),radial-gradient(ellipse_at_82%_15%,rgba(139,92,246,0.12),transparent_55%),radial-gradient(ellipse_at_50%_70%,rgba(34,211,238,0.06),transparent_62%)]"
-      />
+    <>
       <div className="mx-auto w-full max-w-6xl px-5 pb-20 sm:px-8">
-        <div className="relative z-[1]">
-          <FeaturedAnnouncementCarousel
-            announcements={featuredAnnouncements}
-            onSelect={openAnnouncement}
-            selectedSlug={selected?.slug ?? null}
-            reducedMotion={reducedMotion}
-            suspended={selected !== null}
-          />
-
-          <section aria-label="Announcement statistics" className="mb-12 grid gap-3 sm:grid-cols-3">
-            <div className="rounded-2xl border border-line-strong/70 bg-surface/75 p-4">
-              <p className="text-sm text-muted">Published announcements</p>
-              <p className="mt-1 font-display text-2xl font-semibold">{announcements.length}</p>
-            </div>
-            <div className="rounded-2xl border border-line-strong/70 bg-surface/75 p-4">
-              <p className="text-sm text-muted">Topics represented</p>
-              <p className="mt-1 font-display text-2xl font-semibold">{categoryCount}</p>
-            </div>
-            <div className="rounded-2xl border border-line-strong/70 bg-surface/75 p-4">
-              <p className="text-sm text-muted">Upcoming dated updates</p>
-              <p className="mt-1 font-display text-2xl font-semibold">{upcomingAnnouncements.length}</p>
-            </div>
-          </section>
-
-          <UpcomingTimeline announcements={upcomingAnnouncements} />
-        </div>
+        <FeaturedAnnouncementCarousel
+          announcements={featuredAnnouncements}
+          onSelect={openAnnouncement}
+          reducedMotion={reducedMotion}
+          suspended={selected !== null}
+        />
 
         <section aria-labelledby="signal-room-browse-heading">
           <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
@@ -179,7 +147,6 @@ export default function SignalRoom({ announcements, upcomingAnnouncements }: Pro
                 <AnnouncementCard
                   key={item._id}
                   item={item}
-                  expanded={selected?.slug === item.slug}
                   onSelect={openAnnouncement}
                 />
               ))}
@@ -204,22 +171,6 @@ export default function SignalRoom({ announcements, upcomingAnnouncements }: Pro
             </div>
           )}
         </section>
-
-        <section className="mt-14 rounded-3xl border border-line-strong/70 bg-gradient-to-br from-emerald-300/10 via-surface/80 to-violet-300/10 px-6 py-8 sm:px-9 sm:py-10">
-          <p className="font-mono text-xs uppercase tracking-[0.2em] text-brand-cyan">Build with us</p>
-          <h2 className="mt-3 font-display text-2xl font-semibold tracking-tight sm:text-3xl">
-            Don&apos;t just watch the future. Build it.
-          </h2>
-          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted">
-            Explore the club, find a team, and tell us what you&apos;re excited to learn or create.
-          </p>
-          <Link
-            href="/#join"
-            className="mt-5 inline-flex min-h-11 items-center rounded-full bg-brand-cyan px-5 py-2 text-sm font-semibold text-bg transition hover:brightness-110 motion-reduce:transition-none"
-          >
-            Join the Club
-          </Link>
-        </section>
       </div>
 
       {selected && (
@@ -228,6 +179,6 @@ export default function SignalRoom({ announcements, upcomingAnnouncements }: Pro
           onClose={closeAnnouncement}
         />
       )}
-    </div>
+    </>
   );
 }
