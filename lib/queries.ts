@@ -3,6 +3,7 @@ import { isAnnouncementCategory } from './announcement-categories';
 import {
   isAnnouncementPublicationStatus,
   isAnnouncementType,
+  isValidAnnouncementPriority,
   isValidAnnouncementDate,
 } from './announcement-metadata';
 import { safeAnnouncementUrl } from './utils';
@@ -112,10 +113,11 @@ function mapAnnouncementRows(
         ? data.publicationStatus
         : 'published',
       announcementType: isAnnouncementType(data.announcementType) ? data.announcementType : 'notice',
-      priority: Number.isSafeInteger(data.priority) && Number(data.priority) >= 0 && Number(data.priority) <= 1000
-        ? Number(data.priority)
+      priority: isValidAnnouncementPriority(data.priority)
+        ? data.priority
         : 0,
       publicationEndsAt: isValidAnnouncementDate(data.publicationEndsAt) ? data.publicationEndsAt : undefined,
+      announcementBarEventEligible: data.announcementBarEventEligible === true,
       dismissible: data.dismissible === true,
       image,
       eventDate: isValidAnnouncementDate(data.eventDate) ? data.eventDate : undefined,

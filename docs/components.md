@@ -10,6 +10,7 @@ Extend `Announcement` with optional fields:
 - `featured?: boolean`.
 - `publicationStatus?: 'draft' | 'published' | 'archived'`; missing status on legacy records is treated as published.
 - `announcementType?: 'notice' | 'important' | 'deadline'`, `priority?: number`, `publicationEndsAt?: string`, and `dismissible?: boolean`.
+- `announcementBarEventEligible?: boolean`; only an explicitly eligible record in the Events category with a valid future `eventDate` is promoted above ordinary notices. Missing legacy values are treated as false.
 - `image?: SiteImage`, `eventDate?: string`, `deadline?: string`, `ctaLabel?: string`, and `ctaUrl?: string`.
 
 Use one shared category definition for public labels and CMS select options. At the CMS boundary, treat missing optional fields as valid legacy data and validate submitted categories, status, date/time values, image URLs, and CTA URL/label pairs.
@@ -78,6 +79,7 @@ The current `cms_documents.data` JSONB column already stores arbitrary document 
 - Adds an optional category `<select>` whose options come from the shared category definition.
 - Adds an optional featured checkbox with an explicit false state when unchecked.
 - Adds publication status, image URL/alt text, event date, deadline, CTA label, and CTA URL controls.
+- Adds an explicit upcoming-event bar eligibility checkbox; the server requires the Events category and an explicit event date when enabled.
 - Retains existing title, slug, publication date, description, and body fields.
 - Server action independently validates category/status/type values, strict UTC date/time fields, priority, safe same-site/HTTP(S)/mailto CTA URLs, and paired CTA label/URL; client controls are not trusted as validation.
 - Updates the selected document in place. Do not change the document ID or slug index behavior.
@@ -107,7 +109,7 @@ The current `cms_documents.data` JSONB column already stores arbitrary document 
 ### `lib/announcement-bar.ts` and `app/(site)/announcement-bar-actions.ts`
 
 - The pure selector excludes drafts, archives, future starts, expired/invalid publication ends, and expired/missing deadline values.
-- Priority is class first (important > deadline > explicit future event > notice), then priority descending, publication timestamp descending, and stable slug/ID order.
+- Priority is class first (important > deadline > explicitly eligible future event > notice), then priority descending, publication timestamp descending, and stable slug/ID order.
 - Dismissal is verified against the current published record on the server and is stored in a per-record HTTP-only cookie. The version fingerprint includes `updated_at` and public bar fields so later edits become eligible again.
 - IMPORTANT dismissal is rejected server-side; DEADLINE dismissal is honored only when explicitly enabled in Studio.
 

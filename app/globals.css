@@ -40,6 +40,10 @@ html:has(.site-shell[data-announcement-active='true']) {
   --announcement-bar-height: 3rem;
 }
 
+.site-shell[data-announcement-active='true'] .site-skip-link:focus {
+  top: calc(var(--announcement-bar-height) + 5rem);
+}
+
 @media (max-width: 639px) {
   html:has(.site-shell[data-announcement-active='true']) {
     scroll-padding-top: 10rem;

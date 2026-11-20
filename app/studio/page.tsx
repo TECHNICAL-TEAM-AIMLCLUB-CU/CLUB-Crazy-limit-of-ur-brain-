@@ -285,7 +285,7 @@ function DocumentFields({ collection, data }: { collection: CmsCollection; data:
       <TextArea name="body" label="Announcement body" value={readText(data, 'body')} rows={10} helper="Separate paragraphs with a blank line." />
       <section aria-labelledby="announcement-bar-fields-heading" className="space-y-5 rounded-2xl border border-line p-5 sm:p-6">
         <div>
-          <h3 id="announcement-bar-fields-heading" className="font-display text-lg font-semibold">Homepage announcement bar</h3>
+          <h3 id="announcement-bar-fields-heading" className="font-display text-lg font-semibold">Sitewide announcement bar</h3>
           <p className="mt-1 text-sm text-muted">
             Publication date is the start time. Important and deadline types receive priority over ordinary notices.
           </p>
@@ -297,6 +297,7 @@ function DocumentFields({ collection, data }: { collection: CmsCollection; data:
           priority={readText(data, 'priority') || '0'}
           publicationEndsAt={displayDate(data.publicationEndsAt)}
           deadline={displayDate(data.deadline)}
+          announcementBarEventEligible={data.announcementBarEventEligible === true}
           dismissible={data.dismissible === true}
         />
       </section>

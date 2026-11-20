@@ -16,6 +16,7 @@ import {
   hasCompleteAnnouncementCta,
   isAnnouncementPublicationStatus,
   isAnnouncementType,
+  isValidAnnouncementPriority,
   parseUtcDateTimeLocal,
 } from '@/lib/announcement-metadata';
 import type { ProjectStatus, SiteImage } from '@/lib/types';
@@ -232,6 +233,7 @@ export async function saveDocumentAction(formData: FormData): Promise<void> {
     const publicationEndsAt = dateField(formData, 'publicationEndsAt');
     const image = imageField(formData, 'image');
     const eventDate = dateField(formData, 'eventDate');
+    const announcementBarEventEligible = formData.get('announcementBarEventEligible') === 'on';
     const deadline = dateField(formData, 'deadline');
     const ctaLabel = field(formData, 'ctaLabel', 100);
     const ctaUrl = announcementUrlField(formData, 'ctaUrl');
@@ -248,10 +250,13 @@ export async function saveDocumentAction(formData: FormData): Promise<void> {
     if (category && !isAnnouncementCategory(category)) redirectError(collection, 'invalid-fields');
     if (!isAnnouncementPublicationStatus(publicationStatus)) redirectError(collection, 'invalid-fields');
     if (!isAnnouncementType(announcementType)) redirectError(collection, 'invalid-fields');
-    if (!Number.isSafeInteger(priority) || priority < 0 || priority > 1000) {
+    if (!isValidAnnouncementPriority(priority)) {
       redirectError(collection, 'invalid-fields');
     }
     if (announcementType === 'deadline' && !deadline) redirectError(collection, 'invalid-fields');
+    if (announcementBarEventEligible && (category !== 'events' || !eventDate)) {
+      redirectError(collection, 'invalid-fields');
+    }
     if (publicationEndsAt && Date.parse(publicationEndsAt) <= Date.parse(publishedAt)) {
       redirectError(collection, 'invalid-fields');
     }
@@ -267,6 +272,7 @@ export async function saveDocumentAction(formData: FormData): Promise<void> {
       announcementType,
       priority,
       publicationEndsAt: publicationEndsAt || undefined,
+      announcementBarEventEligible,
       dismissible: announcementType === 'important' ? false : formData.get('dismissible') === 'on',
       featured: formData.get('featured') === 'on',
       summary: field(formData, 'summary', 2000),

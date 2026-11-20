@@ -24,6 +24,10 @@ export function isAnnouncementType(value: unknown): value is AnnouncementType {
   return typeof value === 'string' && ANNOUNCEMENT_TYPES.some((type) => type.value === value);
 }
 
+export function isValidAnnouncementPriority(value: unknown): value is number {
+  return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0 && value <= 1000;
+}
+
 export function hasCompleteAnnouncementCta(label: string, url: string | null | undefined): boolean {
   return Boolean(label) === Boolean(url);
 }

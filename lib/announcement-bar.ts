@@ -27,6 +27,7 @@ export function getAnnouncementFingerprint(announcement: Announcement): string {
     announcement.priority,
     announcement.publishedAt,
     announcement.publicationEndsAt,
+    announcement.announcementBarEventEligible,
     announcement.eventDate,
     announcement.deadline,
     announcement.dismissible,
@@ -74,15 +75,6 @@ export function selectAnnouncementBar(
         ? announcement.announcementType
         : 'notice';
 
-    if (
-      announcement.category === 'events' &&
-      announcement.eventDate &&
-      (!isValidDate(announcement.eventDate) || Date.parse(announcement.eventDate) <= now) &&
-      type !== 'important'
-    ) {
-      continue;
-    }
-
     let rank = 0;
     if (type === 'important') {
       rank = 3;
@@ -92,6 +84,7 @@ export function selectAnnouncementBar(
       }
       rank = 2;
     } else if (
+      announcement.announcementBarEventEligible === true &&
       announcement.category === 'events' &&
       announcement.eventDate &&
       isValidDate(announcement.eventDate) &&

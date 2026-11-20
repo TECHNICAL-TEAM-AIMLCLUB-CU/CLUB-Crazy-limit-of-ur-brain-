@@ -16,6 +16,7 @@ type Props = {
   priority: string;
   publicationEndsAt: string;
   deadline: string;
+  announcementBarEventEligible: boolean;
   dismissible: boolean;
 };
 
@@ -24,6 +25,7 @@ export default function AnnouncementBarFields({
   priority,
   publicationEndsAt,
   deadline,
+  announcementBarEventEligible,
   dismissible,
 }: Props) {
   const [type, setType] = useState(announcementType);
@@ -83,6 +85,20 @@ export default function AnnouncementBarFields({
           />
         </label>
       </div>
+      <label className="flex items-start gap-2 text-sm text-fg">
+        <input
+          type="checkbox"
+          name="announcementBarEventEligible"
+          defaultChecked={announcementBarEventEligible}
+          className="mt-1 accent-brand-cyan"
+        />
+        <span>
+          Promote as an upcoming event
+          <span className="mt-1 block text-xs font-normal text-muted">
+            Requires the Events category and an explicit future event date. Existing announcements are not promoted unless enabled.
+          </span>
+        </span>
+      </label>
       <label className="flex items-start gap-2 text-sm text-fg">
         <input
           type="checkbox"

@@ -74,6 +74,7 @@ export interface Announcement {
   announcementType?: AnnouncementType;
   priority?: number;
   publicationEndsAt?: string;
+  announcementBarEventEligible?: boolean;
   dismissible?: boolean;
   category?: AnnouncementCategory;
   featured?: boolean;

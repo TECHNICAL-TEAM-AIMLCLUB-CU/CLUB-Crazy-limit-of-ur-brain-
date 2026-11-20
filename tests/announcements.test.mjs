@@ -112,6 +112,12 @@ test('publication status, CTA pair, and UTC date inputs are validated', () => {
   assert.equal(metadata.hasCompleteAnnouncementCta('Apply', 'https://example.com/apply'), true);
   assert.equal(metadata.hasCompleteAnnouncementCta('Apply', undefined), false);
   assert.equal(metadata.hasCompleteAnnouncementCta('', 'https://example.com/apply'), false);
+  assert.equal(metadata.isValidAnnouncementPriority(0), true);
+  assert.equal(metadata.isValidAnnouncementPriority(1000), true);
+  assert.equal(metadata.isValidAnnouncementPriority(-1), false);
+  assert.equal(metadata.isValidAnnouncementPriority(1001), false);
+  assert.equal(metadata.isValidAnnouncementPriority(1.5), false);
+  assert.equal(metadata.isValidAnnouncementPriority('5'), false);
   assert.equal(metadata.parseUtcDateTimeLocal('2024-02-29T23:59'), '2024-02-29T23:59:00.000Z');
   assert.equal(metadata.parseUtcDateTimeLocal('2025-02-29T23:59'), null);
   assert.equal(metadata.parseUtcDateTimeLocal('2024-01-01T24:00'), null);
@@ -157,6 +163,7 @@ test('announcement bar selects important, deadline, event, then notice in order'
       _id: 'event',
       slug: 'event',
       category: 'events',
+      announcementBarEventEligible: true,
       eventDate: '2026-11-21T10:00:00.000Z',
       priority: 0,
     }),
@@ -222,6 +229,61 @@ test('explicit priority outranks recency within the same announcement class', ()
   );
 });
 
+test('only explicitly eligible future event announcements rank above notices', () => {
+  const now = Date.parse('2026-11-20T12:00:00.000Z');
+  const notice = makeBarAnnouncement({
+    _id: 'notice',
+    slug: 'notice',
+    priority: 1,
+  });
+  const upcomingEvent = makeBarAnnouncement({
+    _id: 'event',
+    slug: 'event',
+    category: 'events',
+    eventDate: '2026-11-21T10:00:00.000Z',
+    priority: 0,
+  });
+
+  assert.equal(
+    announcementBar.selectAnnouncementBar(
+      [notice, upcomingEvent],
+      now,
+      new Set(),
+      metadata.isValidAnnouncementDate,
+    )?.announcement._id,
+    'notice',
+  );
+  assert.equal(
+    announcementBar.selectAnnouncementBar(
+      [notice, { ...upcomingEvent, announcementBarEventEligible: true }],
+      now,
+      new Set(),
+      metadata.isValidAnnouncementDate,
+    )?.announcement._id,
+    'event',
+  );
+  assert.notEqual(
+    announcementBar.getAnnouncementFingerprint(upcomingEvent),
+    announcementBar.getAnnouncementFingerprint({
+      ...upcomingEvent,
+      announcementBarEventEligible: true,
+    }),
+  );
+  assert.equal(
+    announcementBar.selectAnnouncementBar(
+      [notice, {
+        ...upcomingEvent,
+        announcementBarEventEligible: true,
+        eventDate: '2026-11-19T10:00:00.000Z',
+      }],
+      now,
+      new Set(),
+      metadata.isValidAnnouncementDate,
+    )?.announcement._id,
+    'notice',
+  );
+});
+
 test('deadline bars require a future explicit deadline and use UTC day-level copy', () => {
   const now = Date.parse('2026-11-20T12:00:00.000Z');
   const makeDeadline = (deadline) => makeBarAnnouncement({
@@ -241,6 +303,12 @@ test('deadline bars require a future explicit deadline and use UTC day-level cop
   assert.equal(metadata.getAnnouncementDeadlineStatus('2026-11-20T18:00:00.000Z', now), 'Closes today');
   assert.equal(metadata.getAnnouncementDeadlineStatus('2026-11-23T18:00:00.000Z', now), '3 days left');
   assert.equal(metadata.getAnnouncementDeadlineStatus('2026-11-19T18:00:00.000Z', now), 'Closed');
+  const beforeUtcMidnight = Date.parse('2026-11-20T23:59:00.000Z');
+  const afterUtcMidnight = Date.parse('2026-11-21T00:00:00.000Z');
+  const midnightDeadline = '2026-11-21T00:01:00.000Z';
+  assert.equal(metadata.getAnnouncementDeadlineStatus(midnightDeadline, beforeUtcMidnight), '1 day left');
+  assert.equal(metadata.getAnnouncementDeadlineStatus(midnightDeadline, afterUtcMidnight), 'Closes today');
+  assert.equal(utils.formatAnnouncementDeadline('2026-11-21T00:30:00+05:30'), 'Fri, 20 Nov 2026');
   assert.equal(
     announcementBar.selectAnnouncementBar(
       [makeDeadline('2026-11-19T18:00:00.000Z')],
@@ -309,6 +377,14 @@ test('dismissals apply only to a matching dismissible announcement version', () 
   );
   assert.equal(
     announcementBar.isAnnouncementDismissible(deadline),
+    true,
+  );
+  assert.equal(
+    announcementBar.isAnnouncementDismissible({ ...deadline, dismissible: false }),
+    false,
+  );
+  assert.equal(
+    announcementBar.isAnnouncementDismissible({ ...dismissible, announcementType: 'notice' }),
     true,
   );
 });
