@@ -8,9 +8,14 @@ import {
   isCmsCollection,
   type CmsCollection,
 } from '@/lib/cms-admin';
+import AnnouncementBarFields from '@/components/studio/AnnouncementBarFields';
 import { getSettings } from '@/lib/queries';
 import { ANNOUNCEMENT_CATEGORIES, isAnnouncementCategory } from '@/lib/announcement-categories';
-import { ANNOUNCEMENT_PUBLICATION_STATUSES } from '@/lib/announcement-metadata';
+import {
+  ANNOUNCEMENT_PUBLICATION_STATUSES,
+  isAnnouncementPublicationStatus,
+  isAnnouncementType,
+} from '@/lib/announcement-metadata';
 import { deleteDocumentAction, loginAction, logoutAction, saveDocumentAction } from './actions';
 
 export const dynamic = 'force-dynamic';
@@ -33,6 +38,10 @@ const EMPTY_DOCUMENTS: Record<Exclude<CmsCollection, 'settings'>, Record<string,
     slug: '',
     publishedAt: new Date().toISOString(),
     publicationStatus: 'published',
+    announcementType: 'notice',
+    priority: 0,
+    publicationEndsAt: '',
+    dismissible: false,
     category: '',
     featured: false,
     summary: '',
@@ -240,7 +249,11 @@ function DocumentFields({ collection, data }: { collection: CmsCollection; data:
           Publication status
           <select
             name="publicationStatus"
-            defaultValue={readText(data, 'publicationStatus') === 'draft' ? 'draft' : 'published'}
+            defaultValue={
+              isAnnouncementPublicationStatus(data.publicationStatus)
+                ? data.publicationStatus
+                : 'published'
+            }
             className={inputClass}
           >
             {ANNOUNCEMENT_PUBLICATION_STATUSES.map((status) => (
@@ -262,15 +275,41 @@ function DocumentFields({ collection, data }: { collection: CmsCollection; data:
           </select>
         </label>
         <TextField name="eventDate" label="Event date (UTC, optional)" value={displayDate(data.eventDate)} type="datetime-local" />
-        <TextField name="deadline" label="Deadline (UTC, optional)" value={displayDate(data.deadline)} type="datetime-local" />
       </div>
-      <TextArea name="summary" label="Description" value={readText(data, 'summary')} />
+      <TextArea
+        name="summary"
+        label="Message / description"
+        value={readText(data, 'summary')}
+        helper="This description is also the compact announcement bar message."
+      />
       <TextArea name="body" label="Announcement body" value={readText(data, 'body')} rows={10} helper="Separate paragraphs with a blank line." />
+      <section aria-labelledby="announcement-bar-fields-heading" className="space-y-5 rounded-2xl border border-line p-5 sm:p-6">
+        <div>
+          <h3 id="announcement-bar-fields-heading" className="font-display text-lg font-semibold">Homepage announcement bar</h3>
+          <p className="mt-1 text-sm text-muted">
+            Publication date is the start time. Important and deadline types receive priority over ordinary notices.
+          </p>
+        </div>
+        <AnnouncementBarFields
+          announcementType={
+            isAnnouncementType(data.announcementType) ? data.announcementType : 'notice'
+          }
+          priority={readText(data, 'priority') || '0'}
+          publicationEndsAt={displayDate(data.publicationEndsAt)}
+          deadline={displayDate(data.deadline)}
+          dismissible={data.dismissible === true}
+        />
+      </section>
       <div className="grid gap-5 sm:grid-cols-2">
         <TextField name="imageUrl" label="Image URL" value={readText(image, 'url')} type="url" />
         <TextField name="imageAlt" label="Image alt text" value={readText(image, 'alt')} />
         <TextField name="ctaLabel" label="Call-to-action label" value={readText(data, 'ctaLabel')} helper="Required when a CTA URL is provided." />
-        <TextField name="ctaUrl" label="Call-to-action URL" value={readText(data, 'ctaUrl')} type="url" helper="Use an HTTP(S) URL; provide both label and URL." />
+        <TextField
+          name="ctaUrl"
+          label="Call-to-action URL"
+          value={readText(data, 'ctaUrl')}
+          helper="Use a site-relative path, HTTP(S), or mailto URL; provide both label and URL."
+        />
       </div>
       <label className="flex items-center gap-2 text-sm text-fg">
         <input type="checkbox" name="featured" defaultChecked={data.featured === true} className="accent-brand-cyan" />
@@ -285,7 +324,7 @@ function ErrorNotice({ error }: { error?: string }) {
     login: 'Email or password is incorrect.',
     required: 'Fill in all required fields before saving.',
     'invalid-arrays': 'Activities and social links must be valid JSON arrays with the required fields.',
-    'invalid-fields': 'Check dates, URLs, publication status, CTA label, and announcement category; only valid values are accepted.',
+    'invalid-fields': 'Check dates, URLs, publication status, announcement type, priority, CTA label, and category; only valid values are accepted.',
     'invalid-email': 'Enter a valid contact email address.',
     'invalid-collection': 'That content collection or document is not valid.',
     'duplicate-slug': 'That announcement URL slug is already in use. Choose another one.',

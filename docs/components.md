@@ -8,7 +8,8 @@ Extend `Announcement` with optional fields:
 
 - `category?: AnnouncementCategory`, where `AnnouncementCategory` is the union of the controlled identifiers in `docs/prd.md`.
 - `featured?: boolean`.
-- `publicationStatus?: 'draft' | 'published'`; missing status on legacy records is treated as published.
+- `publicationStatus?: 'draft' | 'published' | 'archived'`; missing status on legacy records is treated as published.
+- `announcementType?: 'notice' | 'important' | 'deadline'`, `priority?: number`, `publicationEndsAt?: string`, and `dismissible?: boolean`.
 - `image?: SiteImage`, `eventDate?: string`, `deadline?: string`, `ctaLabel?: string`, and `ctaUrl?: string`.
 
 Use one shared category definition for public labels and CMS select options. At the CMS boundary, treat missing optional fields as valid legacy data and validate submitted categories, status, date/time values, image URLs, and CTA URL/label pairs.
@@ -78,7 +79,7 @@ The current `cms_documents.data` JSONB column already stores arbitrary document 
 - Adds an optional featured checkbox with an explicit false state when unchecked.
 - Adds publication status, image URL/alt text, event date, deadline, CTA label, and CTA URL controls.
 - Retains existing title, slug, publication date, description, and body fields.
-- Server action independently validates category/status values, strict UTC date/time fields, safe HTTP(S) URLs, and paired CTA label/URL; client controls are not trusted as validation.
+- Server action independently validates category/status/type values, strict UTC date/time fields, priority, safe same-site/HTTP(S)/mailto CTA URLs, and paired CTA label/URL; client controls are not trusted as validation.
 - Updates the selected document in place. Do not change the document ID or slug index behavior.
 - Preserve unrecognized stored announcement properties when saving known fields. Do not bulk-rewrite documents.
 
@@ -95,6 +96,20 @@ The current `cms_documents.data` JSONB column already stores arbitrary document 
 - Renders only the future dated announcements selected by the server route from explicit `eventDate` fields.
 - Shows a deadline or CTA only when the corresponding explicit CMS value is present and valid.
 - Is omitted when there are no upcoming dated announcements.
+
+### `app/(site)/layout.tsx` and `components/site/AnnouncementBar.tsx`
+
+- The site layout loads the same published announcements and selects one eligible bar server-side; it reads only opaque dismissal fingerprint cookies.
+- The bar is rendered once above the existing fixed `Navbar`, and the navigation/content offsets are zero when no bar is selected.
+- NOTICE/IMPORTANT/DEADLINE styling and optional safe action links are presentation only; the message never acts as a link.
+- The client component is limited to deadline/publication-end timers and the accessible dismiss form. It contains no database access or selection logic.
+
+### `lib/announcement-bar.ts` and `app/(site)/announcement-bar-actions.ts`
+
+- The pure selector excludes drafts, archives, future starts, expired/invalid publication ends, and expired/missing deadline values.
+- Priority is class first (important > deadline > explicit future event > notice), then priority descending, publication timestamp descending, and stable slug/ID order.
+- Dismissal is verified against the current published record on the server and is stored in a per-record HTTP-only cookie. The version fingerprint includes `updated_at` and public bar fields so later edits become eligible again.
+- IMPORTANT dismissal is rejected server-side; DEADLINE dismissal is honored only when explicitly enabled in Studio.
 
 ## State and accessibility contracts
 

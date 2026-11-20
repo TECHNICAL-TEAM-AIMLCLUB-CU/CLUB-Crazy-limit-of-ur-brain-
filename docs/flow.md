@@ -13,6 +13,15 @@
 7. If no results match, show a clear no-results state and a reset action.
 8. The timeline includes only announcements with explicit, valid future `eventDate` values. Publication dates are not interpreted as event dates; optional deadlines and CTAs are displayed only when explicitly stored.
 
+## Reader: sitewide announcement bar
+
+1. The server selects one record from the same published CMS query before rendering the site shell. It respects `publishedAt`, optional `publicationEndsAt`, explicit deadline/event dates, status, type, and priority.
+2. Selection order is IMPORTANT, active DEADLINE, explicitly future-dated event, then NOTICE; within a class it uses priority, publication time, and stable slug/ID ordering.
+3. The bar uses an explicit safe CTA only. A missing or unsafe CTA produces text-only content. The message is not a link.
+4. A deadline bar shows a UTC weekday/date and day-level remaining state. It refreshes at UTC midnight and removes its action after expiry; expired deadlines are not selected.
+5. Visitors may dismiss an explicitly dismissible NOTICE or DEADLINE. The server verifies the record and cookie fingerprint; IMPORTANT cannot be dismissed. A later CMS edit changes the version fingerprint and permits redisplay.
+6. If no eligible content exists, the bar is omitted and navigation remains at its original position. No automatic rotation or fabricated update count is shown.
+
 ## Reader: expand and open a canonical detail
 
 1. The reader activates an announcement card by pointer or keyboard.
@@ -33,12 +42,13 @@
 ## Administrator: create or edit an announcement
 
 1. An authenticated administrator opens the Announcements collection in `/studio`.
-2. The form retains title, slug, publication date, description, and body fields, and includes status, category, image, event date, deadline, and CTA metadata.
-3. The administrator may select one controlled category or leave it unset, set draft/published status, and choose whether to feature the announcement.
-4. Saving validates required fields, slug, publication date, status, category membership, date/time values, image URL, CTA URL, and CTA label/URL pairing on the server.
-5. A new announcement creates one document. An edit updates the existing document ID, preserves its slug unless changed through the existing field, and preserves unrelated stored JSON properties.
-6. Public routes and sitemap are revalidated using the existing CMS flow. No data migration or bulk update runs.
-7. If an old announcement has no category or featured flag, it remains editable and public. Its category is not fabricated; if no published record is featured, the newest published record fills the carousel fallback.
+2. The form retains title, slug, publication date, description, and body fields, and includes status, bar type, priority, publication end, dismissible option, category, image, event date, deadline, and CTA metadata.
+3. The administrator may select one controlled category or leave it unset, set draft/published/archived status, and choose whether to feature the announcement.
+4. Selecting DEADLINE makes the explicit UTC deadline required. IMPORTANT disables dismissibility; DEADLINE can be dismissible only when its checkbox is enabled.
+5. Saving validates required fields, slug, publication start/end, status, bar type, category membership, date/time values, priority range, image/CTA URLs, and CTA label/URL pairing on the server.
+6. A new announcement creates one document. An edit updates the existing document ID, preserves its slug unless changed through the existing field, and preserves unrelated stored JSON properties.
+7. Public routes, the site shell, and sitemap are revalidated using the existing CMS flow. No data migration or bulk update runs.
+8. If an old announcement has no category or featured flag, it remains editable and public. Its category is not fabricated; if no published record is featured, the newest published record fills the carousel fallback.
 
 ## Data and failure behavior
 

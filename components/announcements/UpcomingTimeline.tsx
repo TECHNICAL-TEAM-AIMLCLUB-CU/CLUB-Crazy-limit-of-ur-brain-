@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { announcementCategoryLabel } from '@/lib/announcement-categories';
 import type { Announcement } from '@/lib/types';
-import { formatDateTime, safeUrl } from '@/lib/utils';
+import { formatDateTime, safeAnnouncementUrl } from '@/lib/utils';
 
 type UpcomingAnnouncement = Announcement & { eventDate: string };
 
@@ -18,8 +18,9 @@ export default function UpcomingTimeline({ announcements }: { announcements: Upc
       </div>
       <ol className="grid gap-4 md:grid-cols-2">
         {announcements.map((announcement) => {
-          const ctaUrl = safeUrl(announcement.ctaUrl);
+          const ctaUrl = safeAnnouncementUrl(announcement.ctaUrl);
           const external = ctaUrl?.startsWith('http') ?? false;
+          const usesAnchor = external || (ctaUrl?.startsWith('mailto:') ?? false);
           return (
             <li key={announcement._id} className="rounded-2xl border border-line-strong/70 bg-surface/85 p-5 sm:p-6">
               <article>
@@ -41,14 +42,23 @@ export default function UpcomingTimeline({ announcements }: { announcements: Upc
                   </p>
                 )}
                 {ctaUrl && announcement.ctaLabel && (
-                  <a
-                    href={ctaUrl}
-                    target={external ? '_blank' : undefined}
-                    rel={external ? 'noopener noreferrer' : undefined}
-                    className="mt-4 inline-flex min-h-11 items-center rounded-full border border-line-strong px-4 py-2 text-sm font-medium text-brand-cyan transition hover:border-brand-cyan/50"
-                  >
-                    {announcement.ctaLabel}
-                  </a>
+                  usesAnchor ? (
+                    <a
+                      href={ctaUrl}
+                      target={external ? '_blank' : undefined}
+                      rel={external ? 'noopener noreferrer' : undefined}
+                      className="mt-4 inline-flex min-h-11 items-center rounded-full border border-line-strong px-4 py-2 text-sm font-medium text-brand-cyan transition hover:border-brand-cyan/50"
+                    >
+                      {announcement.ctaLabel}
+                    </a>
+                  ) : (
+                    <Link
+                      href={ctaUrl}
+                      className="mt-4 inline-flex min-h-11 items-center rounded-full border border-line-strong px-4 py-2 text-sm font-medium text-brand-cyan transition hover:border-brand-cyan/50"
+                    >
+                      {announcement.ctaLabel}
+                    </Link>
+                  )
                 )}
               </article>
             </li>

@@ -15,10 +15,11 @@ import { isAnnouncementCategory } from '@/lib/announcement-categories';
 import {
   hasCompleteAnnouncementCta,
   isAnnouncementPublicationStatus,
+  isAnnouncementType,
   parseUtcDateTimeLocal,
 } from '@/lib/announcement-metadata';
 import type { ProjectStatus, SiteImage } from '@/lib/types';
-import { imageUrl, safeHttpUrl, safeUrl } from '@/lib/utils';
+import { imageUrl, safeAnnouncementUrl, safeHttpUrl, safeUrl } from '@/lib/utils';
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const STATUS: ProjectStatus[] = ['ongoing', 'available', 'completed'];
@@ -75,6 +76,12 @@ function urlField(formData: FormData, name: string): string | undefined | null {
   const value = field(formData, name, 2000);
   if (!value) return undefined;
   return safeHttpUrl(value) ?? null;
+}
+
+function announcementUrlField(formData: FormData, name: string): string | undefined | null {
+  const value = field(formData, name, 2000);
+  if (!value) return undefined;
+  return safeAnnouncementUrl(value) ?? null;
 }
 
 function socialLinks(formData: FormData, name: string): Record<string, unknown>[] | null {
@@ -219,14 +226,19 @@ export async function saveDocumentAction(formData: FormData): Promise<void> {
     const publishedAt = dateField(formData, 'publishedAt');
     const category = field(formData, 'category', 80);
     const publicationStatus = field(formData, 'publicationStatus', 30);
+    const announcementType = field(formData, 'announcementType', 30);
+    const priorityText = field(formData, 'priority', 20);
+    const priority = priorityText ? Number(priorityText) : 0;
+    const publicationEndsAt = dateField(formData, 'publicationEndsAt');
     const image = imageField(formData, 'image');
     const eventDate = dateField(formData, 'eventDate');
     const deadline = dateField(formData, 'deadline');
     const ctaLabel = field(formData, 'ctaLabel', 100);
-    const ctaUrl = urlField(formData, 'ctaUrl');
+    const ctaUrl = announcementUrlField(formData, 'ctaUrl');
     if (!title || publishedAt === '') redirectError(collection, 'required');
     if (
       publishedAt === null ||
+      publicationEndsAt === null ||
       eventDate === null ||
       deadline === null ||
       !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)
@@ -235,6 +247,14 @@ export async function saveDocumentAction(formData: FormData): Promise<void> {
     }
     if (category && !isAnnouncementCategory(category)) redirectError(collection, 'invalid-fields');
     if (!isAnnouncementPublicationStatus(publicationStatus)) redirectError(collection, 'invalid-fields');
+    if (!isAnnouncementType(announcementType)) redirectError(collection, 'invalid-fields');
+    if (!Number.isSafeInteger(priority) || priority < 0 || priority > 1000) {
+      redirectError(collection, 'invalid-fields');
+    }
+    if (announcementType === 'deadline' && !deadline) redirectError(collection, 'invalid-fields');
+    if (publicationEndsAt && Date.parse(publicationEndsAt) <= Date.parse(publishedAt)) {
+      redirectError(collection, 'invalid-fields');
+    }
     if (image === null || ctaUrl === null || !hasCompleteAnnouncementCta(ctaLabel, ctaUrl)) {
       redirectError(collection, 'invalid-fields');
     }
@@ -244,6 +264,10 @@ export async function saveDocumentAction(formData: FormData): Promise<void> {
       publishedAt,
       category: category || undefined,
       publicationStatus,
+      announcementType,
+      priority,
+      publicationEndsAt: publicationEndsAt || undefined,
+      dismissible: announcementType === 'important' ? false : formData.get('dismissible') === 'on',
       featured: formData.get('featured') === 'on',
       summary: field(formData, 'summary', 2000),
       body: field(formData, 'body', 20_000),

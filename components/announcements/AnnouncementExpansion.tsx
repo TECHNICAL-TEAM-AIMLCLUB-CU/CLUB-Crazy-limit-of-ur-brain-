@@ -6,7 +6,7 @@ import { useEffect, useId, useRef, useState } from 'react';
 import RichText from '@/components/ui/RichText';
 import { announcementCategoryLabel } from '@/lib/announcement-categories';
 import type { Announcement } from '@/lib/types';
-import { formatDate, formatDateTime, imageUrl, safeUrl } from '@/lib/utils';
+import { formatDate, formatDateTime, imageUrl, safeAnnouncementUrl } from '@/lib/utils';
 
 type Props = {
   announcement: Announcement;
@@ -20,8 +20,9 @@ export default function AnnouncementExpansion({ announcement, onClose }: Props) 
   const headingId = useId();
   const category = announcementCategoryLabel(announcement.category);
   const image = imageUrl(announcement.image);
-  const ctaUrl = safeUrl(announcement.ctaUrl);
+  const ctaUrl = safeAnnouncementUrl(announcement.ctaUrl);
   const ctaIsExternal = ctaUrl?.startsWith('http') ?? false;
+  const ctaUsesAnchor = ctaIsExternal || (ctaUrl?.startsWith('mailto:') ?? false);
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -119,14 +120,23 @@ export default function AnnouncementExpansion({ announcement, onClose }: Props) 
           {announcement.body && <RichText value={announcement.body} />}
           <div className="mt-9 border-t border-line pt-5">
             {ctaUrl && announcement.ctaLabel && (
-              <a
-                href={ctaUrl}
-                target={ctaIsExternal ? '_blank' : undefined}
-                rel={ctaIsExternal ? 'noopener noreferrer' : undefined}
-                className="mr-3 inline-flex min-h-11 items-center rounded-full bg-brand-cyan px-5 py-2 text-sm font-semibold text-bg transition hover:brightness-110 motion-reduce:transition-none"
-              >
-                {announcement.ctaLabel}
-              </a>
+              ctaUsesAnchor ? (
+                <a
+                  href={ctaUrl}
+                  target={ctaIsExternal ? '_blank' : undefined}
+                  rel={ctaIsExternal ? 'noopener noreferrer' : undefined}
+                  className="mr-3 inline-flex min-h-11 items-center rounded-full bg-brand-cyan px-5 py-2 text-sm font-semibold text-bg transition hover:brightness-110 motion-reduce:transition-none"
+                >
+                  {announcement.ctaLabel}
+                </a>
+              ) : (
+                <Link
+                  href={ctaUrl}
+                  className="mr-3 inline-flex min-h-11 items-center rounded-full bg-brand-cyan px-5 py-2 text-sm font-semibold text-bg transition hover:brightness-110 motion-reduce:transition-none"
+                >
+                  {announcement.ctaLabel}
+                </Link>
+              )
             )}
             <Link
               href={`/announcements/${announcement.slug}`}

@@ -6,7 +6,7 @@ import RichText from '@/components/ui/RichText';
 import { announcementCategoryLabel } from '@/lib/announcement-categories';
 import { getAnnouncement } from '@/lib/queries';
 import { pageMetadata } from '@/lib/seo';
-import { formatDate, formatDateTime, imageUrl, safeUrl } from '@/lib/utils';
+import { formatDate, formatDateTime, imageUrl, safeAnnouncementUrl } from '@/lib/utils';
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -27,8 +27,9 @@ export default async function AnnouncementPage({ params }: Props) {
   if (!a) notFound();
   const category = announcementCategoryLabel(a.category);
   const image = imageUrl(a.image);
-  const ctaUrl = safeUrl(a.ctaUrl);
+  const ctaUrl = safeAnnouncementUrl(a.ctaUrl);
   const ctaIsExternal = ctaUrl?.startsWith('http') ?? false;
+  const ctaUsesAnchor = ctaIsExternal || (ctaUrl?.startsWith('mailto:') ?? false);
 
   return (
     <article className="mx-auto w-full max-w-3xl px-5 pb-20 pt-28 sm:px-8 sm:pt-36">
@@ -80,14 +81,23 @@ export default async function AnnouncementPage({ params }: Props) {
         </div>
       )}
       {ctaUrl && a.ctaLabel && (
-        <a
-          href={ctaUrl}
-          target={ctaIsExternal ? '_blank' : undefined}
-          rel={ctaIsExternal ? 'noopener noreferrer' : undefined}
-          className="mt-8 inline-flex min-h-11 items-center rounded-full bg-brand-cyan px-5 py-2 text-sm font-semibold text-bg transition hover:brightness-110 motion-reduce:transition-none"
-        >
-          {a.ctaLabel}
-        </a>
+        ctaUsesAnchor ? (
+          <a
+            href={ctaUrl}
+            target={ctaIsExternal ? '_blank' : undefined}
+            rel={ctaIsExternal ? 'noopener noreferrer' : undefined}
+            className="mt-8 inline-flex min-h-11 items-center rounded-full bg-brand-cyan px-5 py-2 text-sm font-semibold text-bg transition hover:brightness-110 motion-reduce:transition-none"
+          >
+            {a.ctaLabel}
+          </a>
+        ) : (
+          <Link
+            href={ctaUrl}
+            className="mt-8 inline-flex min-h-11 items-center rounded-full bg-brand-cyan px-5 py-2 text-sm font-semibold text-bg transition hover:brightness-110 motion-reduce:transition-none"
+          >
+            {a.ctaLabel}
+          </Link>
+        )
       )}
     </article>
   );

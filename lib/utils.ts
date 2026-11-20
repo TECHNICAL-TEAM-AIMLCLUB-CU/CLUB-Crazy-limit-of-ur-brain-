@@ -44,6 +44,36 @@ export function safeHttpUrl(url?: string): string | null {
   return safe && (safe.startsWith('https://') || safe.startsWith('http://')) ? safe : null;
 }
 
+export function safeAnnouncementUrl(url?: string): string | null {
+  if (!url) return null;
+  const safe = safeUrl(url);
+  if (safe?.startsWith('mailto:')) return safe;
+  const externalUrl = safeHttpUrl(url);
+  if (externalUrl) return externalUrl;
+  if (!url.startsWith('/') || url.startsWith('//')) return null;
+
+  try {
+    const localUrl = new URL(url, 'https://aiml-club.invalid');
+    return localUrl.origin === 'https://aiml-club.invalid'
+      ? `${localUrl.pathname}${localUrl.search}${localUrl.hash}`
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+const deadlineDateFmt = new Intl.DateTimeFormat('en-GB', {
+  weekday: 'short',
+  day: 'numeric',
+  month: 'short',
+  year: 'numeric',
+  timeZone: 'UTC',
+});
+
+export function formatAnnouncementDeadline(iso: string): string {
+  return deadlineDateFmt.format(new Date(iso));
+}
+
 export const initials = (name: string) =>
   name
     .split(/\s+/)

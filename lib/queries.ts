@@ -1,7 +1,11 @@
 import { getSql } from './db';
 import { isAnnouncementCategory } from './announcement-categories';
-import { isAnnouncementPublicationStatus, isValidAnnouncementDate } from './announcement-metadata';
-import { safeUrl } from './utils';
+import {
+  isAnnouncementPublicationStatus,
+  isAnnouncementType,
+  isValidAnnouncementDate,
+} from './announcement-metadata';
+import { safeAnnouncementUrl } from './utils';
 import type { Announcement, ClubEvent, Project, SiteImage, SiteSettings, TeamMember } from './types';
 
 export async function getSettings(): Promise<SiteSettings> {
@@ -39,17 +43,29 @@ export async function getProjects(): Promise<Project[]> {
   return rows.map((row) => ({ ...(row.data as object), _id: String(row.id) }) as Project);
 }
 
-export async function getAnnouncements(limit = 100): Promise<Announcement[]> {
-  const rows = await getSql()`
-    SELECT id, data
-    FROM cms_documents
-    WHERE collection = 'announcements'
-      AND COALESCE(data->>'publicationStatus', 'published') = 'published'
-      AND (data->>'publishedAt')::timestamptz <= now()
-    ORDER BY (data->>'publishedAt')::timestamptz DESC
-    LIMIT ${limit}
-  `;
-  return mapAnnouncementRows(rows);
+export async function getAnnouncements(
+  limit: number | null = 100,
+  includeUpdatedAt = false,
+): Promise<Announcement[]> {
+  const rows = limit === null
+    ? await getSql()`
+        SELECT id, data, updated_at
+        FROM cms_documents
+        WHERE collection = 'announcements'
+          AND COALESCE(data->>'publicationStatus', 'published') = 'published'
+          AND (data->>'publishedAt')::timestamptz <= now()
+        ORDER BY (data->>'publishedAt')::timestamptz DESC
+      `
+    : await getSql()`
+        SELECT id, data, updated_at
+        FROM cms_documents
+        WHERE collection = 'announcements'
+          AND COALESCE(data->>'publicationStatus', 'published') = 'published'
+          AND (data->>'publishedAt')::timestamptz <= now()
+        ORDER BY (data->>'publishedAt')::timestamptz DESC
+        LIMIT ${limit}
+      `;
+  return mapAnnouncementRows(rows, includeUpdatedAt);
 }
 
 export async function getAnnouncement(slug: string): Promise<Announcement | null> {
@@ -65,10 +81,18 @@ export async function getAnnouncement(slug: string): Promise<Announcement | null
   return rows.length ? mapAnnouncementRows(rows)[0] : null;
 }
 
-function mapAnnouncementRows(rows: Record<string, unknown>[]): Announcement[] {
+function mapAnnouncementRows(
+  rows: Record<string, unknown>[],
+  includeUpdatedAt = false,
+): Announcement[] {
   return rows.map((row) => {
     const data = row.data as Record<string, unknown>;
-    const ctaUrl = typeof data.ctaUrl === 'string' ? safeUrl(data.ctaUrl) : null;
+    const ctaUrl = typeof data.ctaUrl === 'string' ? safeAnnouncementUrl(data.ctaUrl) : null;
+    const updatedAt = row.updated_at instanceof Date
+      ? row.updated_at.toISOString()
+      : typeof row.updated_at === 'string'
+        ? row.updated_at
+        : undefined;
     const imageData = data.image && typeof data.image === 'object' && !Array.isArray(data.image)
       ? data.image as Record<string, unknown>
       : undefined;
@@ -81,11 +105,18 @@ function mapAnnouncementRows(rows: Record<string, unknown>[]): Announcement[] {
     return {
       ...data,
       _id: String(row.id),
+      ...(includeUpdatedAt && updatedAt ? { updatedAt } : {}),
       category: isAnnouncementCategory(data.category) ? data.category : undefined,
       featured: data.featured === true,
       publicationStatus: isAnnouncementPublicationStatus(data.publicationStatus)
         ? data.publicationStatus
         : 'published',
+      announcementType: isAnnouncementType(data.announcementType) ? data.announcementType : 'notice',
+      priority: Number.isSafeInteger(data.priority) && Number(data.priority) >= 0 && Number(data.priority) <= 1000
+        ? Number(data.priority)
+        : 0,
+      publicationEndsAt: isValidAnnouncementDate(data.publicationEndsAt) ? data.publicationEndsAt : undefined,
+      dismissible: data.dismissible === true,
       image,
       eventDate: isValidAnnouncementDate(data.eventDate) ? data.eventDate : undefined,
       deadline: isValidAnnouncementDate(data.deadline) ? data.deadline : undefined,

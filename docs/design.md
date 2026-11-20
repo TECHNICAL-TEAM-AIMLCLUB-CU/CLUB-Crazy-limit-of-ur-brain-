@@ -4,6 +4,8 @@
 
 Signal Room should feel like an editorial briefing room for an AI/ML community: thoughtful, current, and quietly technical. Combine generous editorial spacing and hierarchy with subtle signals of computation. It should feel like part of the existing AIML Club website, not a separate demo or a wholesale redesign.
 
+The sitewide announcement bar is a compact, single-line desktop banner above the fixed navigation, with a two-row mobile layout. Use dark teal/emerald for ordinary notices, muted rose for IMPORTANT, and restrained amber for DEADLINE. Keep the label, message, optional deadline state, action link, and optional dismiss control distinct; only the configured action link and dismiss button are interactive.
+
 ## Palette and surfaces
 
 - Keep the existing dark site canvas and shared navigation/footer intact.

@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { type PointerEvent } from 'react';
 import { announcementCategoryLabel } from '@/lib/announcement-categories';
 import type { Announcement } from '@/lib/types';
-import { formatDate, formatDateTime, imageUrl, safeUrl } from '@/lib/utils';
+import { formatDate, formatDateTime, imageUrl, safeAnnouncementUrl } from '@/lib/utils';
 
 type Props = {
   item: Announcement;
@@ -24,8 +24,9 @@ export default function AnnouncementCard({
 }: Props) {
   const category = announcementCategoryLabel(item.category);
   const image = imageUrl(item.image);
-  const ctaUrl = safeUrl(item.ctaUrl);
+  const ctaUrl = safeAnnouncementUrl(item.ctaUrl);
   const ctaIsExternal = ctaUrl?.startsWith('http') ?? false;
+  const ctaUsesAnchor = ctaIsExternal || (ctaUrl?.startsWith('mailto:') ?? false);
   const detailId = `announcement-detail-${item.slug}`;
 
   function applyTilt(event: PointerEvent<HTMLElement>) {
@@ -121,14 +122,23 @@ export default function AnnouncementCard({
 
       <div className="mt-auto flex flex-wrap items-center justify-between gap-2 pt-6">
         {ctaUrl && item.ctaLabel && (
-          <a
-            href={ctaUrl}
-            target={ctaIsExternal ? '_blank' : undefined}
-            rel={ctaIsExternal ? 'noopener noreferrer' : undefined}
-            className="inline-flex min-h-11 items-center rounded-full bg-brand-cyan px-4 py-2 text-sm font-semibold text-bg transition hover:brightness-110 motion-reduce:transition-none"
-          >
-            {item.ctaLabel}
-          </a>
+          ctaUsesAnchor ? (
+            <a
+              href={ctaUrl}
+              target={ctaIsExternal ? '_blank' : undefined}
+              rel={ctaIsExternal ? 'noopener noreferrer' : undefined}
+              className="inline-flex min-h-11 items-center rounded-full bg-brand-cyan px-4 py-2 text-sm font-semibold text-bg transition hover:brightness-110 motion-reduce:transition-none"
+            >
+              {item.ctaLabel}
+            </a>
+          ) : (
+            <Link
+              href={ctaUrl}
+              className="inline-flex min-h-11 items-center rounded-full bg-brand-cyan px-4 py-2 text-sm font-semibold text-bg transition hover:brightness-110 motion-reduce:transition-none"
+            >
+              {item.ctaLabel}
+            </Link>
+          )
         )}
         {onSelect ? (
           <Link

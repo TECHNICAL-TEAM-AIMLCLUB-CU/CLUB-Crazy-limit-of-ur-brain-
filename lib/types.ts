@@ -1,4 +1,5 @@
 import type { AnnouncementCategory } from './announcement-categories';
+import type { AnnouncementType } from './announcement-metadata';
 
 export interface SiteImage {
   url?: string;
@@ -65,10 +66,15 @@ export interface Project {
 
 export interface Announcement {
   _id: string;
+  updatedAt?: string;
   title: string;
   slug: string;
   publishedAt: string;
-  publicationStatus?: 'draft' | 'published';
+  publicationStatus?: 'draft' | 'published' | 'archived';
+  announcementType?: AnnouncementType;
+  priority?: number;
+  publicationEndsAt?: string;
+  dismissible?: boolean;
   category?: AnnouncementCategory;
   featured?: boolean;
   summary?: string;

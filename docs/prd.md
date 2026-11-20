@@ -10,7 +10,7 @@ Signal Room is the AIML Club website's editorial home for published announcement
 - Announcement documents are stored in the `cms_documents` table as JSONB. The existing public routes are `/announcements` and `/announcements/[slug]`; the homepage also renders recent announcements.
 - The protected `/studio` content studio creates and edits announcement documents.
 - Public content must continue to come from the CMS. Do not seed or hardcode announcement copy, dates, links, or images.
-- Announcement records include `title`, `slug`, `publishedAt`, `summary`, and `body`, plus optional `category`, `featured`, `publicationStatus`, `image`, `eventDate`, `deadline`, `ctaLabel`, and `ctaUrl`.
+- Announcement records include `title`, `slug`, `publishedAt`, `summary`, and `body`, plus optional `category`, `featured`, `publicationStatus`, `announcementType`, `priority`, `publicationEndsAt`, `dismissible`, `image`, `eventDate`, `deadline`, `ctaLabel`, and `ctaUrl`.
 - The database schema has no announcement-specific relational columns or constraints for these fields. Adding JSON properties does not require a DDL migration. Do not rewrite or bulk-update existing rows.
 - `DATABASE_URL` was not configured in the inspected development process, so live Neon records could not be inspected. The no-migration decision is based on `db/schema.sql` and the CMS read/write implementation; verify against the deployed database before any future relational schema change.
 
@@ -26,13 +26,24 @@ Signal Room is the AIML Club website's editorial home for published announcement
 
 ### Published content and compatibility
 
-- Only published announcements whose `publishedAt` is not in the future are shown publicly. Missing `publicationStatus` remains backward-compatible and is treated as published; explicit drafts are never public.
+- Only published announcements whose `publishedAt` is not in the future are shown publicly. Missing `publicationStatus` remains backward-compatible and is treated as published; explicit drafts and archived records are never public.
 - `publishedAt` is the publication date only. An event appears in the upcoming timeline only when it has a valid, explicit future `eventDate`. A deadline label appears only when an explicit, valid `deadline` is stored.
 - Read announcements from the existing CMS query layer; never add a hardcoded content fallback.
 - Existing documents without new optional metadata remain valid and visible. Do not require a backfill.
 - Keep each existing document ID stable. Preserve the current slug unless an administrator explicitly edits the existing slug field; do not generate or re-key slugs automatically. Preserve fields not managed by the announcement form when saving an existing document.
 - Optional values are validated and omitted or cleared deliberately; invalid category values must not become public filter options. Images and CTA links are sanitized before display.
 - If there are no published announcements, show the existing accessible empty-state pattern with no invented content.
+
+### Sitewide announcement bar
+
+- Render at most one announcement bar above the fixed main navigation. Select it server-side from the same existing `getAnnouncements()` JSONB records used by Signal Room; do not use a duplicate store or client-side database access.
+- Respect the publication start (`publishedAt`) and optional valid future `publicationEndsAt`. Do not show drafts, archived records, not-yet-published records, or records whose publication window has ended.
+- Select by class first: IMPORTANT, then active DEADLINE, then an explicitly dated future event, then ordinary NOTICE. Within a class, higher integer priority wins, then newer publication time, then ascending slug/ID for a stable tie break.
+- A DEADLINE type requires an explicit valid future `deadline` to be eligible. Show its UTC weekday/date and a day-level state (“N days left”, “Closes today”, or “Closed”); never show an expired registration link. Past deadlines are removed from selection.
+- Link only the explicit optional CTA. Use safe same-site paths, HTTP(S), or mailto destinations; render no action when there is no valid configured label/link. The message itself is never interactive.
+- Only NOTICE records may be dismissed by default; DEADLINE may be dismissed only when the CMS explicitly enables it; IMPORTANT is never dismissible. Store a per-record, content-version fingerprint in an HTTP-only, same-site cookie. A CMS edit changes the fingerprint and makes the announcement eligible again.
+- Do not rotate announcements or add an “additional updates” count unless the count is provably complete and excludes all ineligible records.
+- With no eligible record, render no bar and leave the navigation at its original top position. Keep the announcement bar and fixed navigation geometry aligned at desktop and mobile widths without a client-storage hydration shift.
 
 ### Categories
 
@@ -108,7 +119,7 @@ During implementation, track each acceptance criterion as PASS, FAIL, NEEDS IMPR
 |---|---|---|
 | Four product specifications created and cross-reviewed against the repository | PASS | `docs/prd.md`, `docs/components.md`, `docs/design.md`, and `docs/flow.md` document the current routes, CMS, schema, design, and interactions. |
 | No announcement DDL migration or bulk rewrite | PASS | `db/schema.sql` stores announcement fields in JSONB; implementation adds optional properties only. |
-| CMS status, category, featured, image, event date, deadline, and CTA fields with server validation and unknown-property preservation | PASS | Studio form and server action use the existing JSONB document; pure validators have focused tests. Live persistence is blocked without Neon credentials. |
+| CMS status, category, featured, image, event date, deadline, CTA, and announcement-bar metadata with server validation and unknown-property preservation | PASS | Studio form and server action use the existing JSONB document; type, priority, date-window, dismissibility, and URL validation are implemented. Live persistence is blocked without Neon credentials. |
 | Legacy records without new optional metadata remain public and render safely | PASS | Query treats missing status as published, normalizes invalid optional metadata, and fallback cases are tested. |
 | Required public filters and legacy category compatibility | PASS | Shared category definitions feed the filters and CMS; tests cover required filters, legacy categories, and uncategorized fallback. |
 | Featured records take precedence; newest published record is the fallback only when none is featured | PASS | Signal Room receives all published announcements ordered by publication timestamp and applies the explicit-feature/fallback selection. |
@@ -117,5 +128,7 @@ During implementation, track each acceptance criterion as PASS, FAIL, NEEDS IMPR
 | Shared-layout expansion, keyboard close/focus restoration, and canonical detail links | BLOCKED | Implemented and compiled; keyboard/browser verification is blocked by the same missing database configuration. |
 | Desktop/tablet/mobile layout and browser-console review of the final code | BLOCKED | Prior live baseline was reviewed, but this final un-deployed change set cannot be browser-tested without a running configured site. |
 | Homepage, announcement detail, Studio, and sitemap compatibility | PASS | Existing public query and routes remain in use; production build is the required verification. |
-| Typecheck, lint, focused tests, production build | PASS | `npm test` (7 focused tests), `npm run typecheck`, `npm run lint` (0 errors; one pre-existing warning in `eslint.config.mjs`), and `npm run build` passed. |
+| Typecheck, lint, focused tests, production build | PASS | `npm test` (14 tests), `npm run typecheck`, `npm run lint` (0 errors; one pre-existing warning in `eslint.config.mjs`), and `npm run build` passed. |
 | Live Neon records, CMS save behavior, and preservation of existing database data | BLOCKED | No `DATABASE_URL` or local env file is available, so no live database read/write was attempted. |
+| Announcement bar priority, active windows, deadline expiry, and dismiss-version rules | PASS | Selector tests cover class order, integer priority, deterministic ties, publication windows, future events, explicit deadlines, and fingerprint changes after edits. |
+| Desktop/mobile announcement bar rendering and keyboard dismissal | BLOCKED | Requires browser verification against a configured deployment; do not infer success from a production build. |

@@ -1,15 +1,27 @@
 export const ANNOUNCEMENT_PUBLICATION_STATUSES = [
   { value: 'draft', label: 'Draft' },
   { value: 'published', label: 'Published' },
+  { value: 'archived', label: 'Archived' },
+] as const;
+
+export const ANNOUNCEMENT_TYPES = [
+  { value: 'notice', label: 'Notice' },
+  { value: 'important', label: 'Important' },
+  { value: 'deadline', label: 'Deadline' },
 ] as const;
 
 export type AnnouncementPublicationStatus = (typeof ANNOUNCEMENT_PUBLICATION_STATUSES)[number]['value'];
+export type AnnouncementType = (typeof ANNOUNCEMENT_TYPES)[number]['value'];
 
 export function isAnnouncementPublicationStatus(value: unknown): value is AnnouncementPublicationStatus {
   return (
     typeof value === 'string' &&
     ANNOUNCEMENT_PUBLICATION_STATUSES.some((status) => status.value === value)
   );
+}
+
+export function isAnnouncementType(value: unknown): value is AnnouncementType {
+  return typeof value === 'string' && ANNOUNCEMENT_TYPES.some((type) => type.value === value);
 }
 
 export function hasCompleteAnnouncementCta(label: string, url: string | null | undefined): boolean {
@@ -53,4 +65,19 @@ export function getUpcomingAnnouncements<T extends { eventDate?: string }>(
         isValidAnnouncementDate(announcement.eventDate) && Date.parse(announcement.eventDate) > now,
     )
     .sort((a, b) => Date.parse(a.eventDate) - Date.parse(b.eventDate));
+}
+
+export function getAnnouncementDeadlineStatus(deadline: string, now: number): string | null {
+  if (!isValidAnnouncementDate(deadline)) return null;
+  const deadlineTime = Date.parse(deadline);
+  if (deadlineTime <= now) return 'Closed';
+
+  const current = new Date(now);
+  const target = new Date(deadlineTime);
+  const currentDay = Date.UTC(current.getUTCFullYear(), current.getUTCMonth(), current.getUTCDate());
+  const targetDay = Date.UTC(target.getUTCFullYear(), target.getUTCMonth(), target.getUTCDate());
+  const daysRemaining = Math.round((targetDay - currentDay) / 86_400_000);
+  if (daysRemaining <= 0) return 'Closes today';
+  if (daysRemaining === 1) return '1 day left';
+  return `${daysRemaining} days left`;
 }
