@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import SignalRoom from '@/components/announcements/SignalRoom';
+import AnnouncementCard from '@/components/cards/AnnouncementCard';
 import EventCard from '@/components/cards/EventCard';
 import PastEventsGallery from '@/components/events/PastEventsGallery';
 import ProjectsCardSwap from '@/components/projects/ProjectsCardSwap';
@@ -9,7 +9,6 @@ import JoinForm from '@/components/site/JoinForm';
 import ButtonLink from '@/components/ui/ButtonLink';
 import { EmptyState, Section } from '@/components/ui/Section';
 import AboutExperience from '@/components/site/AboutExperience';
-import { getUpcomingAnnouncements } from '@/lib/announcement-metadata';
 import { DEFAULTS } from '@/lib/defaults';
 import { getAnnouncements, getEvents, getProjects, getSettings, getTeam } from '@/lib/queries';
 import { safeUrl } from '@/lib/utils';
@@ -27,7 +26,6 @@ export default async function HomePage() {
     new Date(event.endDate ?? event.date).getTime() >= now;
   const upcomingEvents = events.filter(isUpcoming).sort((a, b) => +new Date(a.date) - +new Date(b.date));
   const pastEvents = events.filter((event) => !isUpcoming(event));
-  const upcomingAnnouncements = getUpcomingAnnouncements(announcements);
   const socials = (settings.socials ?? [])
     .map((social) => ({ ...social, href: safeUrl(social.url) }))
     .filter((social) => social.href);
@@ -70,10 +68,12 @@ export default async function HomePage() {
 
       <TeamShowcase cmsTeam={team} compact />
 
-      <Section eyebrow="Latest" title="Announcements" id="announcements" href="/announcements" hrefLabel="Explore all announcements">
+      <Section eyebrow="Latest" title="Announcements" id="announcements" href="/announcements" hrefLabel="Explore all">
         {announcements.length > 0 ? (
-          <div className="-mx-5 sm:-mx-8">
-            <SignalRoom announcements={announcements} upcomingAnnouncements={upcomingAnnouncements} />
+          <div className="grid gap-5 md:grid-cols-3">
+            {announcements.map((announcement) => (
+              <AnnouncementCard key={announcement._id} item={announcement} />
+            ))}
           </div>
         ) : (
           <EmptyState title="No announcements yet" />

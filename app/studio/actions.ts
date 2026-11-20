@@ -12,15 +12,8 @@ import {
 } from '@/lib/admin-auth';
 import { deleteCmsDocument, getCmsDocument, isCmsCollection, saveCmsDocument, type CmsCollection } from '@/lib/cms-admin';
 import { isAnnouncementCategory } from '@/lib/announcement-categories';
-import {
-  hasCompleteAnnouncementCta,
-  isAnnouncementPublicationStatus,
-  isAnnouncementType,
-  isValidAnnouncementPriority,
-  parseUtcDateTimeLocal,
-} from '@/lib/announcement-metadata';
 import type { ProjectStatus, SiteImage } from '@/lib/types';
-import { imageUrl, safeAnnouncementUrl, safeHttpUrl, safeUrl } from '@/lib/utils';
+import { imageUrl, safeUrl } from '@/lib/utils';
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const STATUS: ProjectStatus[] = ['ongoing', 'available', 'completed'];
@@ -61,7 +54,9 @@ function stringsFromList(value: string): string[] {
 
 function dateField(formData: FormData, name: string): string | null {
   const value = field(formData, name, 100);
-  return parseUtcDateTimeLocal(value);
+  if (!value) return '';
+  const date = new Date(`${value}Z`);
+  return Number.isNaN(date.getTime()) ? null : date.toISOString();
 }
 
 function imageField(formData: FormData, prefix: string): SiteImage | null | undefined {
@@ -76,13 +71,8 @@ function imageField(formData: FormData, prefix: string): SiteImage | null | unde
 function urlField(formData: FormData, name: string): string | undefined | null {
   const value = field(formData, name, 2000);
   if (!value) return undefined;
-  return safeHttpUrl(value) ?? null;
-}
-
-function announcementUrlField(formData: FormData, name: string): string | undefined | null {
-  const value = field(formData, name, 2000);
-  if (!value) return undefined;
-  return safeAnnouncementUrl(value) ?? null;
+  const url = safeUrl(value);
+  return url && (url.startsWith('https://') || url.startsWith('http://')) ? url : null;
 }
 
 function socialLinks(formData: FormData, name: string): Record<string, unknown>[] | null {
@@ -226,62 +216,17 @@ export async function saveDocumentAction(formData: FormData): Promise<void> {
     const slug = field(formData, 'slug', 200).toLowerCase();
     const publishedAt = dateField(formData, 'publishedAt');
     const category = field(formData, 'category', 80);
-    const publicationStatus = field(formData, 'publicationStatus', 30);
-    const announcementType = field(formData, 'announcementType', 30);
-    const priorityText = field(formData, 'priority', 20);
-    const priority = priorityText ? Number(priorityText) : 0;
-    const publicationEndsAt = dateField(formData, 'publicationEndsAt');
-    const image = imageField(formData, 'image');
-    const eventDate = dateField(formData, 'eventDate');
-    const announcementBarEventEligible = formData.get('announcementBarEventEligible') === 'on';
-    const deadline = dateField(formData, 'deadline');
-    const ctaLabel = field(formData, 'ctaLabel', 100);
-    const ctaUrl = announcementUrlField(formData, 'ctaUrl');
     if (!title || publishedAt === '') redirectError(collection, 'required');
-    if (
-      publishedAt === null ||
-      publicationEndsAt === null ||
-      eventDate === null ||
-      deadline === null ||
-      !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)
-    ) {
-      redirectError(collection, 'invalid-fields');
-    }
+    if (publishedAt === null || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) redirectError(collection, 'invalid-fields');
     if (category && !isAnnouncementCategory(category)) redirectError(collection, 'invalid-fields');
-    if (!isAnnouncementPublicationStatus(publicationStatus)) redirectError(collection, 'invalid-fields');
-    if (!isAnnouncementType(announcementType)) redirectError(collection, 'invalid-fields');
-    if (!isValidAnnouncementPriority(priority)) {
-      redirectError(collection, 'invalid-fields');
-    }
-    if (announcementType === 'deadline' && !deadline) redirectError(collection, 'invalid-fields');
-    if (announcementBarEventEligible && (category !== 'events' || !eventDate)) {
-      redirectError(collection, 'invalid-fields');
-    }
-    if (publicationEndsAt && Date.parse(publicationEndsAt) <= Date.parse(publishedAt)) {
-      redirectError(collection, 'invalid-fields');
-    }
-    if (image === null || ctaUrl === null || !hasCompleteAnnouncementCta(ctaLabel, ctaUrl)) {
-      redirectError(collection, 'invalid-fields');
-    }
     Object.assign(data, {
       title,
       slug,
       publishedAt,
       category: category || undefined,
-      publicationStatus,
-      announcementType,
-      priority,
-      publicationEndsAt: publicationEndsAt || undefined,
-      announcementBarEventEligible,
-      dismissible: announcementType === 'important' ? false : formData.get('dismissible') === 'on',
       featured: formData.get('featured') === 'on',
       summary: field(formData, 'summary', 2000),
       body: field(formData, 'body', 20_000),
-      image,
-      eventDate: eventDate || undefined,
-      deadline: deadline || undefined,
-      ctaLabel: ctaLabel || undefined,
-      ctaUrl,
     });
   }
 
@@ -294,7 +239,6 @@ export async function saveDocumentAction(formData: FormData): Promise<void> {
     throw error;
   }
   revalidatePath('/', 'layout');
-  revalidatePath('/announcements');
   revalidatePath('/announcements/[slug]', 'page');
   revalidatePath('/sitemap.xml');
   redirect(`/studio?collection=${collection}&saved=1`);
@@ -307,7 +251,6 @@ export async function deleteDocumentAction(formData: FormData): Promise<void> {
   if (!isCmsCollection(collectionValue) || collectionValue === 'settings' || !id) redirectError(null, 'invalid-collection');
   await deleteCmsDocument(collectionValue, id);
   revalidatePath('/', 'layout');
-  revalidatePath('/announcements');
   revalidatePath('/announcements/[slug]', 'page');
   revalidatePath('/sitemap.xml');
   redirect(`/studio?collection=${collectionValue}&saved=1`);

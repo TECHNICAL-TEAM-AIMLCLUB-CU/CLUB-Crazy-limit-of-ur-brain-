@@ -7,7 +7,6 @@ import type { Announcement } from '@/lib/types';
 type Props = {
   announcements: Announcement[];
   onSelect: (item: Announcement, trigger: HTMLButtonElement) => void;
-  selectedSlug: string | null;
   reducedMotion: boolean;
   suspended: boolean;
 };
@@ -15,7 +14,6 @@ type Props = {
 export default function FeaturedAnnouncementCarousel({
   announcements,
   onSelect,
-  selectedSlug,
   reducedMotion,
   suspended,
 }: Props) {
@@ -75,7 +73,6 @@ export default function FeaturedAnnouncementCarousel({
               <button
                 type="button"
                 onClick={() => setUserPaused((paused) => !paused)}
-                aria-pressed={userPaused}
                 aria-label={userPaused ? 'Resume featured announcement rotation' : 'Pause featured announcement rotation'}
                 className="min-h-11 rounded-full border border-line-strong px-3 text-xs text-muted transition hover:border-sky-200/50 hover:text-fg"
               >
@@ -106,7 +103,6 @@ export default function FeaturedAnnouncementCarousel({
           item={current}
           featured
           featuredLabel={featuredLabel}
-          expanded={current.slug === selectedSlug}
           onSelect={onSelect}
         />
       </div>
